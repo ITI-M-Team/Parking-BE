@@ -1,0 +1,86 @@
+1. accounts
+إدارة المستخدمين (Users)
+التحقق (Verification)
+التسجيل/الدخول
+التعديلات الشخصية (Profile Management)
+إعدادات كلمة المرور (Password Change)
+الصلاحيات (Roles: Driver, Garage Owner, Employee, Admin)
+🔹 يحتوي على: 
+
+models.py: CustomUser, UserProfile, VerificationRequest
+views.py: تسجيل الدخول، التسجيل، تعديل الملف الشخصي
+serializers.py: لـ REST API
+2. garages
+إدارة المواقع (Garage Management)
+عرض المواقع (Search, Details)
+المواقع المتاحة (Parking Spots)
+التحديثات (Update, Delete)
+🔹 يحتوي على: 
+
+models.py: Garage, ParkingSpot, GarageReview
+views.py: البحث عن المواقع، عرض التفاصيل
+serializers.py: للبيانات المرسلة من الـ Frontend
+3. bookings
+حجز المواقف (Booking)
+إلغاء الحجز (Cancellation)
+QR Code
+تحديد الوقت (Estimated Arrival Time)
+التكاليف (Cost Calculation)
+🔹 يحتوي على: 
+
+models.py: Booking, BookingCancellation, BookingStatus
+views.py: إنشاء الحجز، إلغاؤه، التحقق من تواريخ الحجز
+serializers.py: بيانات الحجز
+4. wallet
+المحافظ الإلكترونية (Wallet)
+المعاملات (Transactions)
+الإيداع (Top-up)
+السحب (Payout)
+التحصيل (Invoices)
+🔹 يحتوي على: 
+
+models.py: Wallet, Transaction, Invoice, Payout
+views.py: إدارة المحافظ، معاملات الدفع
+serializers.py: بيانات المحافظ
+5. notifications
+الإشعارات (Email, SMS, Push)
+إرسال الإشعارات عند التغييرات (Verification, Booking Confirmation, Cancellation)
+🔹 يحتوي على: 
+
+models.py: Notification
+views.py: إرسال الإشعارات
+services.py: خدمات الإشعارات (مثل SendGrid أو Twilio)
+6. employees
+إدارة الموظفين (Employee Management)
+مسح QR Codes (Entry/Exit)
+تسجيل الدخول للموظفين
+إدارة المواقف (Parking Spot Status Updates)
+🔹 يحتوي على: 
+
+models.py: Employee, QRScanLog
+views.py: تسجيل الدخول للموظفين، تسجيل دخول/خروج السيارات
+7. reviews
+التقييمات (Ratings and Reviews)
+عرض التقييمات (Average Rating)
+تحديث التقييمات
+🔹 يحتوي على: 
+
+models.py: GarageReview
+views.py: إضافة تقييم، عرض التقييمات
+8. payments
+إدارة المدفوعات (Stripe, Paymob, etc.)
+التحويلات المالية (Payouts)
+استلام الدفعات (Payment Gateway Integration)
+🔹 يحتوي على: 
+
+models.py: Payment, PaymentMethod
+views.py: إجراء الدفع، استقبال المدفوعات
+services.py: مكتبة الدفع (مثل Stripe SDK)
+9. analytics
+إحصائيات (Daily Revenue, Occupancy Rate, Bookings)
+تقارير (Reports for Garage Owners)
+🔹 يحتوي على: 
+
+models.py: AnalyticsReport
+views.py: توليد التقارير
+serializers.py: تقارير الإحصائيات
