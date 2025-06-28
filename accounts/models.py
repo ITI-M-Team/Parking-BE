@@ -47,11 +47,14 @@
 #             raise ValidationError("Phone number must be valid and numeric.")
 
 
+from datetime import timezone
 from django.db import models
 from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.utils.translation import gettext_lazy as _
 from django.core.exceptions import ValidationError
+from django.utils.crypto import get_random_string
+
 
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):

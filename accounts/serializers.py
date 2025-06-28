@@ -100,3 +100,42 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             raise serializers.ValidationError("Your account is not approved yet.")
         data['role'] = self.user.role
         return data
+#####################################################################
+class PasswordResetRequestSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=False)
+    phone = serializers.CharField(required=False, max_length=15)
+    method = serializers.CharField()
+
+    def validate(self, data):
+        method = data['method']
+        if method == 'email' and not data.get('email'):
+            raise serializers.ValidationError("Email is required for email method")
+        if method == 'phone' and not data.get('phone'):
+            raise serializers.ValidationError("Phone is required for phone method")
+        
+        # Validate Egyptian phone number format if phone is provided
+        if method == 'phone' and data.get('phone'):
+            phone = data['phone']
+            if len(phone) != 11 or not phone.startswith(('010', '011', '012', '015')):
+                raise serializers.ValidationError("Phone must be a valid Egyptian number")
+        
+        return data
+
+class PasswordResetVerifySerializer(serializers.Serializer):
+    email = serializers.EmailField(required=False)
+    phone = serializers.CharField(required=False, max_length=15)
+    otp = serializers.CharField(max_length=6)
+    method = serializers.CharField()
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=False)
+    phone = serializers.CharField(required=False, max_length=15)
+    otp = serializers.CharField(max_length=6)
+    new_password = serializers.CharField(min_length=8, max_length=128)
+    confirm_password = serializers.CharField(min_length=8, max_length=128)
+    method = serializers.CharField()
+
+    def validate(self, data):
+        if data['new_password'] != data['confirm_password']:
+            raise serializers.ValidationError("Passwords don't match")
+        return data
