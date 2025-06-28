@@ -101,6 +101,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         data['role'] = self.user.role
         return data
 #####################################################################
+###############
 class PasswordResetRequestSerializer(serializers.Serializer):
     email = serializers.EmailField(required=False)
     phone = serializers.CharField(required=False, max_length=15)

@@ -54,7 +54,7 @@ from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.utils.translation import gettext_lazy as _
 from django.core.exceptions import ValidationError
 from django.utils.crypto import get_random_string
-
+from django.conf import settings
 
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
@@ -142,6 +142,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
             raise ValidationError(_("Phone number must be 11 digits"))
 
         super().clean()
+#############################################################################
 class PasswordResetOTP(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     otp = models.CharField(max_length=6)
