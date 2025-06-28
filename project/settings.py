@@ -172,5 +172,5 @@ EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'appparking653@gmail.com'
-EMAIL_HOST_PASSWORD = 'parking123456'
+EMAIL_HOST_PASSWORD = os.getenv('GMAIL_APP_PASSWORD')  # pqwd rwig oqst jjqq 
 DEFAULT_FROM_EMAIL = 'appparking653@gmail.com'
