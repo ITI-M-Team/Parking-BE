@@ -139,3 +139,36 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
             raise ValidationError(_("Phone number must be 11 digits"))
 
         super().clean()
+class PasswordResetOTP(models.Model):
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    otp = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    used = models.BooleanField(default=False)
+    method = models.CharField(max_length=10)  # 'email' or 'phone'
+
+    @classmethod
+    def create_for_user(cls, user, method):
+        # Delete any existing OTPs for this user
+        cls.objects.filter(user=user, method=method).delete()
+        
+        return cls.objects.create(
+            user=user,
+            otp=get_random_string(6, '0123456789'),
+            expires_at=timezone.now() + timezone.timedelta(minutes=15),
+            method=method
+        )
+
+    def is_valid(self):
+        return not self.used and self.expires_at > timezone.now()
+
+    def send_otp_email(self):
+        subject = "Your Parking App Password Reset OTP"
+        message = f"Your OTP code is: {self.otp}\n\nThis code will expire in 15 minutes."
+        
+        send_mail(
+            subject=subject,
+            message=message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[self.user.email],
+        )
