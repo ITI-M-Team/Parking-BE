@@ -26,8 +26,8 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth import authenticate
 from django.contrib.auth.hashers import make_password
-from .models import CustomUser
-from .serializers import RegisterSerializer , CustomTokenObtainPairSerializer
+from .models import *
+from .serializers import*
 from rest_framework_simplejwt.views import TokenObtainPairView
 # from rest_framework_simplejwt.tokens import RefreshToken
 
@@ -60,50 +60,41 @@ class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
     
 ###########################################################
+
 class PasswordResetRequestView(generics.CreateAPIView):
     serializer_class = PasswordResetRequestSerializer
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        
+
         method = serializer.validated_data['method']
         email = serializer.validated_data.get('email')
         phone = serializer.validated_data.get('phone')
-        
+
         try:
-            if method == 'email':
-                user = CustomUser.objects.get(email=email)
-            else:
-                user = CustomUser.objects.get(phone=phone)
+            user = CustomUser.objects.get(email=email) if method == 'email' else CustomUser.objects.get(phone=phone)
         except CustomUser.DoesNotExist:
-            # Return generic response to prevent user enumeration
             return Response(
                 {"detail": "If this account exists, you'll receive an OTP"},
                 status=status.HTTP_200_OK
             )
 
-        # Create new OTP
         otp = PasswordResetOTP.create_for_user(user, method)
-        
-        if method == 'email':
-            try:
+
+        try:
+            if method == 'email':
                 otp.send_otp_email()
-            except Exception as e:
-                return Response(
-                    {"detail": "Failed to send OTP email"},
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
-                )
-        
-        # For phone/SMS, you would implement similar logic with your SMS provider
-        # This is just a placeholder for demonstration
-        if method == 'phone':
-            print(f"OTP for {phone}: {otp.otp}")  # In production, send via SMS gateway
-        
-        return Response(
-            {"detail": "OTP has been sent"},
-            status=status.HTTP_200_OK
-        )
+            elif method == 'phone':
+                otp.send_otp_whatsapp()
+        except Exception as e:
+            return Response(
+                {"detail": f"Failed to send OTP: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+        return Response({"detail": "OTP has been sent"}, status=status.HTTP_200_OK)
+
 
 class PasswordResetVerifyView(generics.CreateAPIView):
     serializer_class = PasswordResetVerifySerializer
@@ -111,18 +102,14 @@ class PasswordResetVerifyView(generics.CreateAPIView):
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        
+
         method = serializer.validated_data['method']
         otp = serializer.validated_data['otp']
         email = serializer.validated_data.get('email')
         phone = serializer.validated_data.get('phone')
-        
+
         try:
-            if method == 'email':
-                user = CustomUser.objects.get(email=email)
-            else:
-                user = CustomUser.objects.get(phone=phone)
-                
+            user = CustomUser.objects.get(email=email) if method == 'email' else CustomUser.objects.get(phone=phone)
             otp_record = PasswordResetOTP.objects.get(
                 user=user,
                 otp=otp,
@@ -134,17 +121,15 @@ class PasswordResetVerifyView(generics.CreateAPIView):
                 {"detail": "Invalid OTP or user"},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         if not otp_record.is_valid():
             return Response(
                 {"detail": "OTP has expired"},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
-        return Response(
-            {"detail": "OTP is valid"},
-            status=status.HTTP_200_OK
-        )
+
+        return Response({"detail": "OTP is valid"}, status=status.HTTP_200_OK)
+
 
 class PasswordResetConfirmView(generics.CreateAPIView):
     serializer_class = PasswordResetConfirmSerializer
@@ -152,19 +137,15 @@ class PasswordResetConfirmView(generics.CreateAPIView):
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        
+
         method = serializer.validated_data['method']
         otp = serializer.validated_data['otp']
         new_password = serializer.validated_data['new_password']
         email = serializer.validated_data.get('email')
         phone = serializer.validated_data.get('phone')
-        
+
         try:
-            if method == 'email':
-                user = CustomUser.objects.get(email=email)
-            else:
-                user = CustomUser.objects.get(phone=phone)
-                
+            user = CustomUser.objects.get(email=email) if method == 'email' else CustomUser.objects.get(phone=phone)
             otp_record = PasswordResetOTP.objects.get(
                 user=user,
                 otp=otp,
@@ -176,24 +157,20 @@ class PasswordResetConfirmView(generics.CreateAPIView):
                 {"detail": "Invalid OTP or user"},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         if not otp_record.is_valid():
             return Response(
                 {"detail": "OTP has expired"},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
-        # Update password
+
         user.set_password(new_password)
         user.save()
-        
-        # Mark OTP as used
+
         otp_record.used = True
         otp_record.save()
-        
-        return Response(
-            {"detail": "Password has been reset successfully"},
-            status=status.HTTP_200_OK
-        )
+
+        return Response({"detail": "Password has been reset successfully"}, status=status.HTTP_200_OK)
+
 
 

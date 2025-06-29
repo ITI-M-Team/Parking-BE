@@ -166,11 +166,14 @@ SIMPLE_JWT = {
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
-# Email Configuration
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'appparking653@gmail.com'
-EMAIL_HOST_PASSWORD = os.getenv('GMAIL_APP_PASSWORD')  # pqwd rwig oqst jjqq 
+EMAIL_HOST_PASSWORD = 'pqwd rwig oqst jjqq'  # App password only
 DEFAULT_FROM_EMAIL = 'appparking653@gmail.com'
+# Twilio settings for WhatsApp
+TWILIO_ACCOUNT_SID = 'AC4e6d3cf6e6e3738773edb526a9500c23'
+TWILIO_AUTH_TOKEN = '189a3dbfcec6275f29c4f54a0662d793'
+TWILIO_WHATSAPP_NUMBER = 'whatsapp:+14155238886'

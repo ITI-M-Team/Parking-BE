@@ -1,5 +1,5 @@
 #!/bin/sh
-'''exec' "/mnt/my python/Final project  ITI/Parking/Parking-BE/venv/bin/python3" "$0" "$@"
+'''exec' "/home/ahmed-abd-elkader/parking /back/Parking-BE/venv/bin/python3" "$0" "$@"
 ' '''
 # -*- coding: utf-8 -*-
 import re
