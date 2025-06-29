@@ -1,10 +1,4 @@
-<<<<<<< HEAD
 #!/home/fatma/Documents/parking/Parking-BE/venv/bin/python3
-=======
-#!/bin/sh
-'''exec' "/mnt/my python/Final project  ITI/Parking/Parking-BE/venv/bin/python3" "$0" "$@"
-' '''
->>>>>>> d708a53516ccbf42dd8628825ad68062751794c1
 # -*- coding: utf-8 -*-
 import re
 import sys
