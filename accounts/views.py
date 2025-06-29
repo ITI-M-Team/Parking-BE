@@ -1,33 +1,13 @@
-# from django.shortcuts import render
-# from rest_framework.views import APIView
-# from rest_framework.response import Response
-# from rest_framework import status
-# from rest_framework.parsers import MultiPartParser, FormParser
-# from .serializers import CustomUserSerializer
 
-# # Create your views here.
-
-# class RegisterView(APIView):
-#     parser_classes = [MultiPartParser, FormParser]
-
-#     def post(self, request, *args, **kwargs):
-#         serializer = CustomUserSerializer(data=request.data)
-#         if serializer.is_valid():
-#             user = serializer.save()
-#             return Response({
-#                 "message": "Registration successful",
-#                 "user_id": user.id
-#             }, status=status.HTTP_201_CREATED)
-#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-#############################################
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth import authenticate
 from django.contrib.auth.hashers import make_password
 from .models import CustomUser
-from .serializers import RegisterSerializer
+from rest_framework.views import APIView
+from .serializers import RegisterSerializer , CustomTokenObtainPairSerializer
+from rest_framework_simplejwt.views import TokenObtainPairView
 # from rest_framework_simplejwt.tokens import RefreshToken
 
 class RegisterView(generics.CreateAPIView):
@@ -51,3 +31,28 @@ class RegisterView(generics.CreateAPIView):
             user.national_id_img = national_id_img
 
         user.save()
+
+
+
+
+class CustomTokenObtainPairView(TokenObtainPairView):
+    serializer_class = CustomTokenObtainPairSerializer
+
+
+# ##GEt user info 
+class CurrentUserView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        return Response({
+            "email": user.email,
+            "username": user.username,
+            "role": user.role,
+            "national_id": user.national_id,
+            "phone": user.phone,
+            "driver_license": user.driver_license.url if user.driver_license else None,
+            "car_license": user.car_license.url if user.car_license else None,
+            "national_id_img": user.national_id_img.url if user.national_id_img else None,
+        })
+
