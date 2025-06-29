@@ -1,0 +1,14 @@
+<<<<<<< HEAD:venv/bin/pip3.10
+#!/home/fatma/Documents/parking/Parking-BE/venv/bin/python3
+=======
+#!/bin/sh
+'''exec' "/mnt/my python/Final project  ITI/Parking/Parking-BE/venv/bin/python3" "$0" "$@"
+' '''
+>>>>>>> d708a53516ccbf42dd8628825ad68062751794c1:venv/bin/pip3.12
+# -*- coding: utf-8 -*-
+import re
+import sys
+from pip._internal.cli.main import main
+if __name__ == '__main__':
+    sys.argv[0] = re.sub(r'(-script\.pyw|\.exe)?$', '', sys.argv[0])
+    sys.exit(main())

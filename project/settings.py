@@ -44,9 +44,12 @@ INSTALLED_APPS = [
     #####our APPS #######
     'corsheaders',
     'accounts',
+<<<<<<< HEAD
     'garage',
     
 
+=======
+>>>>>>> d708a53516ccbf42dd8628825ad68062751794c1
 
 ]
 
