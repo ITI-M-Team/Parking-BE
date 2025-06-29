@@ -5,7 +5,6 @@ from .models import CustomUser
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-# from rest_framework_simplejwt.tokens import RefreshToken
 
 class RegisterSerializer(serializers.ModelSerializer):
     class Meta:
@@ -28,6 +27,7 @@ class RegisterSerializer(serializers.ModelSerializer):
 
         validated_data['password'] = make_password(validated_data['password'])
         validated_data['verification_status'] = 'Pending'
+        validated_data['is_active'] = False
 
         user = CustomUser.objects.create(**validated_data)
 
@@ -40,12 +40,22 @@ class RegisterSerializer(serializers.ModelSerializer):
 
         user.save()
         return user
-    
-
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    username_field = CustomUser.EMAIL_FIELD
+
     def validate(self, attrs):
+        credentials = {
+            'email': attrs.get('email'),
+            'password': attrs.get('password')
+        }
+
+        user = authenticate(**credentials)
+        if user is None or not user.is_active:
+            raise serializers.ValidationError("Account inactive or invalid credentials.")
+
         data = super().validate(attrs)
+
         if self.user.verification_status != 'Verified':
             raise serializers.ValidationError("Your account is not approved yet.")
         user=self.user
@@ -60,3 +70,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             "national_id_img": user.national_id_img.url if user.national_id_img else None,
         }
         return data
+
+        data['role'] = user.role
+        return data
+

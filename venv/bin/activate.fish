@@ -1,5 +1,5 @@
 # This file must be used with "source <venv>/bin/activate.fish" *from fish*
-# (https://fishshell.com/). You cannot run it directly.
+# (https://fishshell.com/); you cannot run it directly.
 
 function deactivate  -d "Exit virtual environment and return to normal shell environment"
     # reset old environment variables
@@ -33,7 +33,11 @@ end
 # Unset irrelevant variables.
 deactivate nondestructive
 
+<<<<<<< HEAD
 set -gx VIRTUAL_ENV /mnt/data/ITI/F-Project/F-Repo/BK/Parking-BE/venv
+=======
+set -gx VIRTUAL_ENV /home/fatma/Documents/parking/Parking-BE/venv
+>>>>>>> 1e6546dff84a67522d202257604a3f03a91fdd9c
 
 set -gx _OLD_VIRTUAL_PATH $PATH
 set -gx PATH "$VIRTUAL_ENV/"bin $PATH
