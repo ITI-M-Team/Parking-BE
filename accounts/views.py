@@ -1,62 +1,59 @@
-# from django.shortcuts import render
-# from rest_framework.views import APIView
-# from rest_framework.response import Response
-# from rest_framework import status
-# from rest_framework.parsers import MultiPartParser, FormParser
-# from .serializers import CustomUserSerializer
 
-# # Create your views here.
-
-# class RegisterView(APIView):
-#     parser_classes = [MultiPartParser, FormParser]
-
-#     def post(self, request, *args, **kwargs):
-#         serializer = CustomUserSerializer(data=request.data)
-#         if serializer.is_valid():
-#             user = serializer.save()
-#             return Response({
-#                 "message": "Registration successful",
-#                 "user_id": user.id
-#             }, status=status.HTTP_201_CREATED)
-#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-#############################################
 from rest_framework import generics, status
+from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
-from django.contrib.auth import authenticate
-from django.contrib.auth.hashers import make_password
+from django.core.mail import send_mail
+from django.conf import settings
 from .models import CustomUser
-from .serializers import RegisterSerializer , CustomTokenObtainPairSerializer
+from .serializers import RegisterSerializer, CustomTokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
-# from rest_framework_simplejwt.tokens import RefreshToken
+from django.utils.http import urlsafe_base64_encode
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes, force_str
+
+
+
 
 class RegisterView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
+
     def perform_create(self, serializer):
-        driver_license = serializer.validated_data.pop('driver_license', None)
-        car_license = serializer.validated_data.pop('car_license', None)
-        national_id_img = serializer.validated_data.pop('national_id_img', None)
-
-        validated_data = serializer.validated_data
-        validated_data['password'] = make_password(validated_data['password'])
-        validated_data['verification_status'] = 'Pending'
-
-        user = CustomUser.objects.create(**validated_data)
-
-        if driver_license:
-            user.driver_license = driver_license
-        if car_license:
-            user.car_license = car_license
-        if national_id_img:
-            user.national_id_img = national_id_img
-
+        user = serializer.save()
+        user.is_active = False
         user.save()
 
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        token = default_token_generator.make_token(user)
 
+        activation_link = f"http://localhost:8000/api/activate/{uid}/{token}/"
+        send_mail(
+            'Activate your account',
+            f'Click the link to activate your account: {activation_link}',
+            settings.DEFAULT_FROM_EMAIL,
+            [user.email],
+            fail_silently=False,
+        )
+class ActivateUserView(APIView):
+    def get(self, request, uidb64, token):
+        try:
+            uid = force_str(urlsafe_base64_decode(uidb64))
+            user = CustomUser.objects.get(pk=uid)
+
+            if user.is_active:
+                return Response({'message': 'Account already activated.'})
+
+            if default_token_generator.check_token(user, token):
+                user.is_active = True
+                user.save()
+                return Response({'message': 'Account activated successfully.'}, status=200)
+            else:
+                return Response({'error': 'Invalid activation token.'}, status=400)
+
+        except (TypeError, ValueError, OverflowError, CustomUser.DoesNotExist):
+            return Response({'error': 'Invalid activation link.'}, status=400)        
 
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
-
 

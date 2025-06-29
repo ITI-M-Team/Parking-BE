@@ -47,11 +47,23 @@
 #             raise ValidationError("Phone number must be valid and numeric.")
 
 
+
+
+
+
+
+
+
+
+
+
+
 from django.db import models
 from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.utils.translation import gettext_lazy as _
 from django.core.exceptions import ValidationError
+
 
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
@@ -122,8 +134,10 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 
     objects = CustomUserManager()
 
+    EMAIL_FIELD = 'email'
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['username', 'phone', 'national_id']  
+    REQUIRED_FIELDS = ['username', 'phone', 'national_id']
+
     def __str__(self):
         return self.email
 
@@ -139,3 +153,6 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
             raise ValidationError(_("Phone number must be 11 digits"))
 
         super().clean()
+
+
+
