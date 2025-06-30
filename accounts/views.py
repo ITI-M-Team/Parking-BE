@@ -4,11 +4,10 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.core.mail import send_mail
 from django.conf import settings
-from .models import CustomUser
+from .models import *
 from rest_framework.views import APIView
-from .serializers import RegisterSerializer , CustomTokenObtainPairSerializer, UserUpdateSerializer
+from .serializers import *
 from rest_framework.permissions import IsAuthenticated
-from .serializers import RegisterSerializer, CustomTokenObtainPairSerializer
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework_simplejwt.views import TokenObtainPairView
 from django.utils.http import urlsafe_base64_encode
@@ -91,5 +90,119 @@ class CurrentUserView(APIView):
             serializer.save()
             return Response({'message': 'Profile updated successfully'})
         return Response(serializer.errors, status=400)
+
+
+###########################################################
+
+class PasswordResetRequestView(generics.CreateAPIView):
+    serializer_class = PasswordResetRequestSerializer
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        method = serializer.validated_data['method']
+        email = serializer.validated_data.get('email')
+        phone = serializer.validated_data.get('phone')
+
+        try:
+            user = CustomUser.objects.get(email=email) if method == 'email' else CustomUser.objects.get(phone=phone)
+        except CustomUser.DoesNotExist:
+            return Response(
+                {"detail": "If this account exists, you'll receive an OTP"},
+                status=status.HTTP_200_OK
+            )
+
+        otp = PasswordResetOTP.create_for_user(user, method)
+
+        try:
+            if method == 'email':
+                otp.send_otp_email()
+            elif method == 'phone':
+                otp.send_otp_whatsapp()
+        except Exception as e:
+            return Response(
+                {"detail": f"Failed to send OTP: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+        return Response({"detail": "OTP has been sent"}, status=status.HTTP_200_OK)
+
+
+class PasswordResetVerifyView(generics.CreateAPIView):
+    serializer_class = PasswordResetVerifySerializer
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        method = serializer.validated_data['method']
+        otp = serializer.validated_data['otp']
+        email = serializer.validated_data.get('email')
+        phone = serializer.validated_data.get('phone')
+
+        try:
+            user = CustomUser.objects.get(email=email) if method == 'email' else CustomUser.objects.get(phone=phone)
+            otp_record = PasswordResetOTP.objects.get(
+                user=user,
+                otp=otp,
+                method=method,
+                used=False
+            )
+        except (CustomUser.DoesNotExist, PasswordResetOTP.DoesNotExist):
+            return Response(
+                {"detail": "Invalid OTP or user"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if not otp_record.is_valid():
+            return Response(
+                {"detail": "OTP has expired"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        return Response({"detail": "OTP is valid"}, status=status.HTTP_200_OK)
+
+
+class PasswordResetConfirmView(generics.CreateAPIView):
+    serializer_class = PasswordResetConfirmSerializer
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        method = serializer.validated_data['method']
+        otp = serializer.validated_data['otp']
+        new_password = serializer.validated_data['new_password']
+        email = serializer.validated_data.get('email')
+        phone = serializer.validated_data.get('phone')
+
+        try:
+            user = CustomUser.objects.get(email=email) if method == 'email' else CustomUser.objects.get(phone=phone)
+            otp_record = PasswordResetOTP.objects.get(
+                user=user,
+                otp=otp,
+                method=method,
+                used=False
+            )
+        except (CustomUser.DoesNotExist, PasswordResetOTP.DoesNotExist):
+            return Response(
+                {"detail": "Invalid OTP or user"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if not otp_record.is_valid():
+            return Response(
+                {"detail": "OTP has expired"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        user.set_password(new_password)
+        user.save()
+
+        otp_record.used = True
+        otp_record.save()
+
+        return Response({"detail": "Password has been reset successfully"}, status=status.HTTP_200_OK)
 
 
