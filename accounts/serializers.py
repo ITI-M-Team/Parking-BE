@@ -47,8 +47,9 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 
     def validate(self, attrs):
         credentials = {
-            'email': attrs.get('email'),
-            'password': attrs.get('password')
+        self.username_field:
+        attrs.get(self.username_field),
+        'password': attrs.get('password')
         }
 
         user = authenticate(**credentials)
