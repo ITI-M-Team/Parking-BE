@@ -6,10 +6,10 @@ from django.core.mail import send_mail
 from django.conf import settings
 from .models import CustomUser
 from rest_framework.views import APIView
-from .serializers import RegisterSerializer , CustomTokenObtainPairSerializer
-
+from .serializers import RegisterSerializer , CustomTokenObtainPairSerializer, UserUpdateSerializer
+from rest_framework.permissions import IsAuthenticated
 from .serializers import RegisterSerializer, CustomTokenObtainPairSerializer
-
+from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework_simplejwt.views import TokenObtainPairView
 from django.utils.http import urlsafe_base64_encode
 from django.contrib.auth.tokens import default_token_generator
@@ -60,24 +60,36 @@ class ActivateUserView(APIView):
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
+    def get_serializer_context(self):
+        return {"request": self.request}
 
 
 
 # ##GEt user info 
 class CurrentUserView(APIView):
     permission_classes = [IsAuthenticated]
-
+    parser_classes = [MultiPartParser, FormParser]
     def get(self, request):
         user = request.user
+        def build_url(file):
+            return request.build_absolute_uri(file.url) if file else None
         return Response({
             "email": user.email,
             "username": user.username,
             "role": user.role,
             "national_id": user.national_id,
             "phone": user.phone,
-            "driver_license": user.driver_license.url if user.driver_license else None,
-            "car_license": user.car_license.url if user.car_license else None,
-            "national_id_img": user.national_id_img.url if user.national_id_img else None,
+            "driver_license": build_url(user.driver_license),
+            "car_license":  build_url(user.car_license),
+            "national_id_img": build_url(user.national_id_img),
         })
+    def put(self, request):
+        user = request.user
+        serializer = UserUpdateSerializer(user, data=request.data, partial=True)
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response({'message': 'Profile updated successfully'})
+        return Response(serializer.errors, status=400)
 
 

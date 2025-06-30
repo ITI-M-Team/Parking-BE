@@ -1,4 +1,19 @@
-venv/
+# Python
+_pycache_/
 
-__pycache__/
-*.pyc
+# VSCode settings
+.vscode/
+
+# Migrations (optional – useful in dev only)
+**/migrations/
+!**/migrations/_init_.py
+
+# Virtual environment
+venv/
+.env
+~       
+# Media and static files
+/media/
+
+_pycache_/
+*.py[cod]

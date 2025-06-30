@@ -1,5 +1,6 @@
 # This file must be used with "source bin/activate.csh" *from csh*.
 # You cannot run it directly.
+
 # Created by Davide Di Blasi <davidedb@gmail.com>.
 # Ported to Python 3.3 venv by Andrew Svetlov <andrew.svetlov@gmail.com>
 
@@ -8,11 +9,7 @@ alias deactivate 'test $?_OLD_VIRTUAL_PATH != 0 && setenv PATH "$_OLD_VIRTUAL_PA
 # Unset irrelevant variables.
 deactivate nondestructive
 
-<<<<<<< HEAD
 setenv VIRTUAL_ENV /mnt/data/ITI/F-Project/F-Repo/BK/Parking-BE/venv
-=======
-setenv VIRTUAL_ENV /home/fatma/Documents/parking/Parking-BE/venv
->>>>>>> 1e6546dff84a67522d202257604a3f03a91fdd9c
 
 set _OLD_VIRTUAL_PATH="$PATH"
 setenv PATH "$VIRTUAL_ENV/"bin":$PATH"

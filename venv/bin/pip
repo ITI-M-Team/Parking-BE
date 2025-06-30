@@ -1,8 +1,4 @@
-<<<<<<< HEAD
 #!/mnt/data/ITI/F-Project/F-Repo/BK/Parking-BE/venv/bin/python3
-=======
-#!/home/fatma/Documents/parking/Parking-BE/venv/bin/python3
->>>>>>> 1e6546dff84a67522d202257604a3f03a91fdd9c
 # -*- coding: utf-8 -*-
 import re
 import sys
