@@ -1,38 +1,24 @@
-# from django.shortcuts import render
-# from rest_framework.views import APIView
-# from rest_framework.response import Response
-# from rest_framework import status
-# from rest_framework.parsers import MultiPartParser, FormParser
-# from .serializers import CustomUserSerializer
 
-# # Create your views here.
-
-# class RegisterView(APIView):
-#     parser_classes = [MultiPartParser, FormParser]
-
-#     def post(self, request, *args, **kwargs):
-#         serializer = CustomUserSerializer(data=request.data)
-#         if serializer.is_valid():
-#             user = serializer.save()
-#             return Response({
-#                 "message": "Registration successful",
-#                 "user_id": user.id
-#             }, status=status.HTTP_201_CREATED)
-#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-#############################################
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth import authenticate
 from django.contrib.auth.hashers import make_password
-from .models import CustomUser
-from .serializers import RegisterSerializer , CustomTokenObtainPairSerializer
+from .models import CustomUser, Garage
+from .serializers import RegisterSerializer, CustomTokenObtainPairSerializer, GarageSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
-# from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.views import APIView
+from geopy.distance import geodesic
+from django.db.models import Q
+
+
+ 
+
+
 
 class RegisterView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
+
     def perform_create(self, serializer):
         driver_license = serializer.validated_data.pop('driver_license', None)
         car_license = serializer.validated_data.pop('car_license', None)
@@ -54,9 +40,38 @@ class RegisterView(generics.CreateAPIView):
         user.save()
 
 
-
-
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
+
+
+class NearbyGaragesView(generics.ListAPIView):
+    serializer_class = GarageSerializer
+
+    def get_queryset(self):
+        queryset = Garage.objects.all()
+        lat = self.request.query_params.get('lat')
+        lon = self.request.query_params.get('lon')
+        query = self.request.query_params.get('search')
+
+        if query:
+            queryset = queryset.filter(
+                Q(name__icontains=query) |
+                Q(address__icontains=query)
+            )
+
+        if lat and lon:
+            user_location = (float(lat), float(lon))
+            queryset = sorted(
+                queryset,
+                key=lambda garage: geodesic(
+                    user_location,
+                    (garage.latitude, garage.longitude)
+                ).km
+            )
+
+        return queryset
+
+    def get_serializer_context(self):
+        return {'request': self.request}
 
 

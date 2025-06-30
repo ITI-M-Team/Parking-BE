@@ -1,52 +1,3 @@
-# from django.db import models
-# from django.contrib.auth.models import AbstractUser
-# from django.core.exceptions import ValidationError
-
-# # Create your models here.
-# class CustomUser(AbstractUser):
-#     ROLE_CHOICES=(
-#         ('driver', 'Driver'),
-#         ('garage_owner', 'Garage Owner'),
-#     )
-#     national_id = models.CharField(
-#         max_length=14,
-#         unique=True,
-#         blank=False,
-#         null=False,
-#         )
-#     role = models.CharField(max_length=20, choices=ROLE_CHOICES)
-#     verification_status= models.CharField(
-#         max_length=20,
-#         default='Pending',
-#         choices=(
-#             ('Pending', 'Pending'),
-#             ('Verified', 'Verified'),
-#             ('Rejected', 'Rejected'),
-#         )
-#     )
-
-#     phone_number = models.CharField(max_length=20)
-
-#     # UPLOADING docs
-#     driver_license = models.FileField(upload_to='documents/driver/', blank=True, null=True)
-#     car_license = models.FileField(upload_to='documents/car/' , blank=True, null=True)
-#     national_id_img = models.FileField(upload_to='documents/national_id/', blank=True, null=True)
-
-#     # Timestamps
-#     created_at = models.DateTimeField(auto_now_add=True)
-#     updated_at = models.DateTimeField(auto_now=True) 
-
-#     def __str__(self):
-#         return self.username
-    
-#     def clean(self):
-#         super().clean()
-#         if len(self.national_id) != 14 or not self.national_id.isdigit():
-#             raise ValidationError("National ID must be exactly 14 digits.")
-#         if not self.phone_number.isdigit() or len(self.phone_number) < 10:
-#             raise ValidationError("Phone number must be valid and numeric.")
-
-
 from django.db import models
 from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
@@ -123,7 +74,8 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     objects = CustomUserManager()
 
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['username', 'phone', 'national_id']  
+    REQUIRED_FIELDS = ['username', 'phone', 'national_id']
+
     def __str__(self):
         return self.email
 
@@ -139,3 +91,16 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
             raise ValidationError(_("Phone number must be 11 digits"))
 
         super().clean()
+
+
+class Garage(models.Model):
+    name = models.CharField(max_length=100)
+    address = models.TextField()
+    latitude = models.FloatField()
+    longitude = models.FloatField()
+    hourly_rate = models.DecimalField(max_digits=6, decimal_places=2)
+    available_spots = models.IntegerField()
+    average_rating = models.FloatField(default=0.0)
+
+    def __str__(self):
+        return self.name
