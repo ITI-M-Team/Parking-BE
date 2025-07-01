@@ -18,6 +18,11 @@ from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.utils.translation import gettext_lazy as _
 from django.core.exceptions import ValidationError
+from django.utils.crypto import get_random_string
+from django.utils import timezone
+from django.core.mail import send_mail
+from django.conf import settings
+from twilio.rest import Client
 
 
 class CustomUserManager(BaseUserManager):
@@ -111,3 +116,50 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 
 
 
+#############################################################################
+class PasswordResetOTP(models.Model):
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    otp = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    used = models.BooleanField(default=False)
+    method = models.CharField(max_length=10)  # 'email' or 'phone'
+
+    @classmethod
+    def create_for_user(cls, user, method):
+        # Delete previous OTPs
+        cls.objects.filter(user=user, method=method).delete()
+
+        otp_code = get_random_string(length=6, allowed_chars='0123456789')
+
+        otp = cls.objects.create(
+            user=user,
+            otp=otp_code,
+            expires_at=timezone.now() + timezone.timedelta(minutes=15),
+            method=method
+        )
+
+        return otp
+
+    def is_valid(self):
+        return not self.used and self.expires_at > timezone.now()
+    def send_otp_email(self):
+        subject = "Your Parking App Password Reset OTP"
+        message = f"Your OTP code is: {self.otp}\nThis code expires in 15 minutes."
+        send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [self.user.email])
+        send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [self.user.email])
+
+    def send_otp_whatsapp(self):
+        client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
+        phone = self.user.phone  # تأكد من تنسيقه الصحيح
+        message_body = f"Your Parking App OTP is: {self.otp}\nThis code expires in 15 minutes."
+
+        try:
+            message = client.messages.create(
+                from_=settings.TWILIO_WHATSAPP_NUMBER,    
+                to=f'whatsapp:+2{phone}',                   
+                body=message_body
+            )
+            return message.sid
+        except Exception as e:
+            raise Exception(f"Failed to send WhatsApp message: {str(e)}")
