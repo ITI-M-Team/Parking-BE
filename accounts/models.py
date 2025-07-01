@@ -4,6 +4,7 @@ from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.utils.translation import gettext_lazy as _
 from django.core.exceptions import ValidationError
 
+
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
         if not email:
@@ -73,6 +74,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 
     objects = CustomUserManager()
 
+    EMAIL_FIELD = 'email'
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username', 'phone', 'national_id']
 
@@ -101,6 +103,20 @@ class Garage(models.Model):
     hourly_rate = models.DecimalField(max_digits=6, decimal_places=2)
     available_spots = models.IntegerField()
     average_rating = models.FloatField(default=0.0)
+
+    def clean(self):
+        if not (22 <= self.latitude <= 32):
+            raise ValidationError({'latitude': 'Latitude must be between 22 and 32 (Egypt only).'})
+        if not (25 <= self.longitude <= 35):
+            raise ValidationError({'longitude': 'Longitude must be between 25 and 35 (Egypt only).'})
+
+        if self.hourly_rate < 0:
+            raise ValidationError({'hourly_rate': 'Hourly rate must be positive or zero.'})
+        if self.available_spots < 0:
+            raise ValidationError({'available_spots': 'Available spots must be positive or zero.'})
+
+        if not (0 <= self.average_rating <= 5):
+            raise ValidationError({'average_rating': 'Average rating must be between 0 and 5.'})
 
     def __str__(self):
         return self.name
