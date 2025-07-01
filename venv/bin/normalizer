@@ -1,6 +1,4 @@
-#!/bin/sh
-'''exec' "/home/ahmed-abd-elkader/parking /back/Parking-BE/venv/bin/python3" "$0" "$@"
-' '''
+#!/home/fatma/Music/grad_proj/Parking-BE/venv/bin/python3
 # -*- coding: utf-8 -*-
 import re
 import sys

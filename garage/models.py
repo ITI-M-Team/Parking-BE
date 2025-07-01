@@ -7,6 +7,8 @@ class Garage(models.Model):
     longitude = models.FloatField()
     opening_hour = models.TimeField()
     closing_hour = models.TimeField()
+    image = models.ImageField(upload_to='garage_images/', null=True, blank=True)
+    price_per_hour = models.DecimalField(max_digits=6, decimal_places=2, default=0.0)
 
 class GarageReview(models.Model):
     garage = models.ForeignKey(Garage, on_delete=models.CASCADE, related_name='reviews')
