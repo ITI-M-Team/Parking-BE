@@ -6,6 +6,7 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from django.contrib.auth import authenticate
 from django.contrib.auth.hashers import make_password
 from django.core.mail import send_mail
+from django.shortcuts import redirect
 from django.conf import settings
 from django.db.models import Q
 
@@ -30,7 +31,8 @@ class RegisterView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
 
     def perform_create(self, serializer):
-        user = serializer.save(commit=False)
+        # user = serializer.save(commit=False) ##Commit parameter only used in Django Forms Not at Rest_Frame_Work !!
+        user = serializer.save()
         user.is_active = False
         user.save()
 
@@ -45,7 +47,7 @@ class RegisterView(generics.CreateAPIView):
             [user.email],
             fail_silently=False,
         )
-
+ 
 
 # Activate User View
 class ActivateUserView(APIView):
@@ -55,36 +57,36 @@ class ActivateUserView(APIView):
             user = CustomUser.objects.get(pk=uid)
 
             if user.is_active:
-                return Response({'message': 'Account already activated.'})
+                return redirect(f"{settings.FRONTEND_BASE_URL}/activation?status=already-activated")
 
             if default_token_generator.check_token(user, token):
                 user.is_active = True
                 user.save()
-                return Response({'message': 'Account activated successfully.'}, status=200)
+                return redirect(f"{settings.FRONTEND_BASE_URL}/activation?status=success")
             else:
-                return Response({'error': 'Invalid activation token.'}, status=400)
+               return redirect(f"{settings.FRONTEND_BASE_URL}/activation?status=invalid-token")
 
         except (TypeError, ValueError, OverflowError, CustomUser.DoesNotExist):
-            return Response({'error': 'Invalid activation link.'}, status=400)
+            return redirect(f"{settings.FRONTEND_BASE_URL}/activation?status=invalid-link")
 
-class ActivateUserView(APIView):
-    def get(self, request, uidb64, token):
-        try:
-            uid = force_str(urlsafe_base64_decode(uidb64))
-            user = CustomUser.objects.get(pk=uid)
+# class ActivateUserView(APIView):
+#     def get(self, request, uidb64, token):
+#         try:
+#             uid = force_str(urlsafe_base64_decode(uidb64))
+#             user = CustomUser.objects.get(pk=uid)
 
-            if user.is_active:
-                return Response({'message': 'Account already activated.'})
+#             if user.is_active:
+#                 return Response({'message': 'Account already activated.'})
 
-            if default_token_generator.check_token(user, token):
-                user.is_active = True
-                user.save()
-                return Response({'message': 'Account activated successfully.'}, status=200)
-            else:
-                return Response({'error': 'Invalid activation token.'}, status=400)
+#             if default_token_generator.check_token(user, token):
+#                 user.is_active = True
+#                 user.save()
+#                 return Response({'message': 'Account activated successfully.'}, status=200)
+#             else:
+#                 return Response({'error': 'Invalid activation token.'}, status=400)
 
-        except (TypeError, ValueError, OverflowError, CustomUser.DoesNotExist):
-            return Response({'error': 'Invalid activation link.'}, status=400)        
+#         except (TypeError, ValueError, OverflowError, CustomUser.DoesNotExist):
+#             return Response({'error': 'Invalid activation link.'}, status=400)        
 
 
 class CustomTokenObtainPairView(TokenObtainPairView):

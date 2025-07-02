@@ -153,6 +153,7 @@ REST_FRAMEWORK = {
 
 from datetime import timedelta
 
+FRONTEND_BASE_URL = "http://localhost:5173"
 
 
 SIMPLE_JWT = {
