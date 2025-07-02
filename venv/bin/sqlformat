@@ -1,4 +1,6 @@
-#!/home/fatma/Music/grad_proj/Parking-BE/venv/bin/python3
+#!/bin/sh
+'''exec' "/mnt/my python/Final project  ITI/Parking3/Parking-BE/venv/bin/python3" "$0" "$@"
+' '''
 # -*- coding: utf-8 -*-
 import re
 import sys

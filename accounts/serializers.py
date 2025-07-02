@@ -45,15 +45,15 @@ class RegisterSerializer(serializers.ModelSerializer):
         return user
 
 
-# Custom Login Serializer with role + extra data
+# Custom Token Obtain Pair Serializer
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     username_field = CustomUser.EMAIL_FIELD
 
     def validate(self, attrs):
         credentials = {
-        self.username_field:
-        attrs.get(self.username_field),
-        'password': attrs.get('password')
+            # 'email': attrs.get('email'),
+            self.username_field: attrs.get(self.username_field),
+            'password': attrs.get('password')
         }
 
         user = authenticate(**credentials)
@@ -62,30 +62,21 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 
         data = super().validate(attrs)
 
-        if self.user.verification_status != 'Verified':
-            raise serializers.ValidationError("Your account is not approved yet.")
-
-        request = self.context.get('request')
-
-        def build_url(file):
-            if file:
-                return request.build_absolute_uri(file.url) if request else file.url
-            return None
-
-        data['role'] = user.role
-        data['user'] = {
+        user=self.user
+        data['user']={
             "email": user.email,
             "username": user.username,
             "role": user.role,
             "national_id": user.national_id,
             "phone": user.phone,
-            "driver_license": build_url(user.driver_license),
-            "car_license": build_url(user.car_license),
-            "national_id_img": build_url(user.national_id_img),
+            "driver_license": user.driver_license.url if user.driver_license else None,
+            "car_license": user.car_license.url if user.car_license else None,
+            "national_id_img": user.national_id_img.url if user.national_id_img else None,
         }
-
         return data
 
+        data['role'] = user.role
+        return data
 
 # Serializer for displaying garages including calculated distance
 class GarageSerializer(serializers.ModelSerializer):

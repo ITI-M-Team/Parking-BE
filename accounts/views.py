@@ -30,7 +30,7 @@ class RegisterView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
 
     def perform_create(self, serializer):
-        user = serializer.save()
+        user = serializer.save(commit=False)
         user.is_active = False
         user.save()
 
@@ -67,14 +67,28 @@ class ActivateUserView(APIView):
         except (TypeError, ValueError, OverflowError, CustomUser.DoesNotExist):
             return Response({'error': 'Invalid activation link.'}, status=400)
 
+class ActivateUserView(APIView):
+    def get(self, request, uidb64, token):
+        try:
+            uid = force_str(urlsafe_base64_decode(uidb64))
+            user = CustomUser.objects.get(pk=uid)
 
-# Custom Token Login View
+            if user.is_active:
+                return Response({'message': 'Account already activated.'})
+
+            if default_token_generator.check_token(user, token):
+                user.is_active = True
+                user.save()
+                return Response({'message': 'Account activated successfully.'}, status=200)
+            else:
+                return Response({'error': 'Invalid activation token.'}, status=400)
+
+        except (TypeError, ValueError, OverflowError, CustomUser.DoesNotExist):
+            return Response({'error': 'Invalid activation link.'}, status=400)        
+
+
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
-
-    def get_serializer_context(self):
-        return {"request": self.request}
-
 
 # Get/Update Current User View
 class CurrentUserView(APIView):
