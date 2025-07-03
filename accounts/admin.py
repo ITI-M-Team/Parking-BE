@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import CustomUser  # أضف Garage هنا
+from .models import CustomUser  
 
 @admin.register(CustomUser)
 class CustomUserAdmin(admin.ModelAdmin):
