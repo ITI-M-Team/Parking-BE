@@ -1,4 +1,6 @@
-#!/mnt/data/ITI/F-Project/F-Repo/BK/Parking-BE/venv/bin/python3
+#!/bin/sh
+'''exec' "/home/name/Documents/ITI/1-Grad Project/3- project/1/Parking-BE/venv/bin/python3" "$0" "$@"
+' '''
 # -*- coding: utf-8 -*-
 import re
 import sys

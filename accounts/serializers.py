@@ -5,9 +5,6 @@ from django.contrib.auth.hashers import make_password
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-
-
-# Register Serializer
 class RegisterSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
@@ -17,10 +14,35 @@ class RegisterSerializer(serializers.ModelSerializer):
         ]
         extra_kwargs = {
             'password': {'write_only': True},
-            'username': {'required': True},
-            'phone': {'required': True},
-            'national_id': {'required': True}
         }
+
+    # Email validation
+    def validate_email(self, value):
+        if CustomUser.objects.filter(email=value).exists():
+            raise serializers.ValidationError("This email is already in use.")
+        return value
+
+    # Username validation
+    def validate_username(self, value):
+        if CustomUser.objects.filter(username=value).exists():
+            raise serializers.ValidationError("This username is already taken.")
+        return value
+
+    # Phone validation
+    def validate_phone(self, value):
+        if not value.isdigit() or len(value) != 11 or not value.startswith(('010', '011', '012', '015')):
+            raise serializers.ValidationError("Enter a valid Egyptian phone number.")
+        if CustomUser.objects.filter(phone=value).exists():
+            raise serializers.ValidationError("This phone number is already in use.")
+        return value
+
+    # National ID validation
+    def validate_national_id(self, value):
+        if not value.isdigit() or len(value) != 14:
+            raise serializers.ValidationError("Enter a valid 14-digit national ID.")
+        if CustomUser.objects.filter(national_id=value).exists():
+            raise serializers.ValidationError("This national ID is already registered.")
+        return value
 
     def create(self, validated_data):
         driver_license = validated_data.pop('driver_license', None)
@@ -42,8 +64,6 @@ class RegisterSerializer(serializers.ModelSerializer):
 
         user.save()
         return user
-
-
 # Custom Token Obtain Pair Serializer
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     username_field = CustomUser.EMAIL_FIELD
@@ -85,6 +105,7 @@ class UserUpdateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CustomUser
+        
         fields = [
             'email', 'username', 'phone', 'national_id',
             'driver_license', 'car_license', 'national_id_img',
