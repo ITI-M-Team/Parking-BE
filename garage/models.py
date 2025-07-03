@@ -30,9 +30,10 @@ class GarageReview(models.Model):
 
 class ParkingSpot(models.Model):
     STATUS_CHOICES = [
-        ('available', 'Available'),
-        ('occupied', 'Occupied'),
-    ]
+    ('available', 'Available'),
+    ('occupied', 'Occupied'),
+    ('reserved', 'Reserved'),
+]
     garage = models.ForeignKey(Garage, on_delete=models.CASCADE, related_name='spots')
     slot_number = models.CharField(max_length=10)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='available')
