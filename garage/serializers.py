@@ -1,5 +1,8 @@
 from rest_framework import serializers
+
 from .models import Garage, ParkingSpot
+from geopy.distance import geodesic
+
 
 
 class GarageDetailSerializer(serializers.ModelSerializer):
@@ -22,3 +25,28 @@ class ParkingSpotSerializer(serializers.ModelSerializer):
     class Meta:
         model = ParkingSpot
         fields = ['id', 'slot_number', 'status']
+
+
+
+
+
+
+class GarageSerializer(serializers.ModelSerializer):
+    distance = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Garage
+        fields = ['id', 'name', 'address', 'latitude', 'longitude',
+                  'price_per_hour',  'distance']
+
+    def get_distance(self, obj):
+        request = self.context.get('request')
+        if request:
+            lat = request.query_params.get('lat')
+            lon = request.query_params.get('lon')
+            if lat and lon:
+                return round(geodesic(
+                    (float(lat), float(lon)),
+                    (obj.latitude, obj.longitude)
+                ).km, 2)
+        return None

@@ -5,7 +5,6 @@ from django.contrib.auth.hashers import make_password
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from geopy.distance import geodesic
 
 
 # Register Serializer
@@ -77,27 +76,6 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 
         data['role'] = user.role
         return data
-
-# Serializer for displaying garages including calculated distance
-class GarageSerializer(serializers.ModelSerializer):
-    distance = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Garage
-        fields = ['id', 'name', 'address', 'latitude', 'longitude',
-                  'hourly_rate', 'available_spots', 'average_rating', 'distance']
-
-    def get_distance(self, obj):
-        request = self.context.get('request')
-        if request:
-            lat = request.query_params.get('lat')
-            lon = request.query_params.get('lon')
-            if lat and lon:
-                return round(geodesic(
-                    (float(lat), float(lon)),
-                    (obj.latitude, obj.longitude)
-                ).km, 2)
-        return None
 
 
 # User Update Serializer

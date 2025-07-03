@@ -20,7 +20,6 @@ from django.utils.http import urlsafe_base64_encode
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
-from geopy.distance import geodesic
 
 
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -124,36 +123,7 @@ class CurrentUserView(APIView):
         return Response(serializer.errors, status=400)
 
 
-# Nearby Garages View
-class NearbyGaragesView(generics.ListAPIView):
-    serializer_class = GarageSerializer
 
-    def get_queryset(self):
-        queryset = Garage.objects.all()
-        lat = self.request.query_params.get('lat')
-        lon = self.request.query_params.get('lon')
-        query = self.request.query_params.get('search')
-
-        if query:
-            queryset = queryset.filter(
-                Q(name__icontains=query) |
-                Q(address__icontains=query)
-            )
-
-        if lat and lon:
-            user_location = (float(lat), float(lon))
-            queryset = sorted(
-                queryset,
-                key=lambda garage: geodesic(
-                    user_location,
-                    (garage.latitude, garage.longitude)
-                ).km
-            )
-
-        return queryset
-
-    def get_serializer_context(self):
-        return {'request': self.request}
 ###########################################################
 class PasswordResetRequestView(generics.CreateAPIView):
     serializer_class = PasswordResetRequestSerializer
