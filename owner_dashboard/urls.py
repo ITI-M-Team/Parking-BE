@@ -1,4 +1,3 @@
-# owner_dashboard/urls.py
 
 from django.urls import path
 from .views import OwnerDashboardAPIView, UpdateSpotAvailabilityAPIView
