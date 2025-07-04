@@ -10,6 +10,10 @@ class Garage(models.Model):
     closing_hour = models.TimeField()
     image = models.ImageField(upload_to='garage_images/', null=True, blank=True)
     price_per_hour = models.DecimalField(max_digits=6, decimal_places=2, default=0.0)
+    reservation_grace_period = models.PositiveIntegerField(
+        default=15,
+        help_text="مدة الحجز المؤقت بالدقائق قبل إلغائه تلقائيًا"
+    )
 
 
     def clean(self):

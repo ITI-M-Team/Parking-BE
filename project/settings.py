@@ -33,7 +33,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'accounts',
     'garage',
-    
+    'booking',
 
 
 
@@ -163,6 +163,7 @@ SIMPLE_JWT = {
     'USER_ID_FIELD': 'id',  
     'USER_AUTHENTICATION_FIELDS': ['email'],
 }
+CELERY_BROKER_URL = 'redis://localhost:6379/0'  # Broker for tasks
 
 
 # إعدادات البريد الإلكتروني
