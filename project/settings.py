@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     'accounts',
     'garage',
     'booking',
+    'owner_dashboard',
 
 
 

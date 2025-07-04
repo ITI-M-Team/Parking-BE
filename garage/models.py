@@ -1,7 +1,11 @@
 from django.db import models
 from django.core.exceptions import ValidationError
 
+from accounts.models import CustomUser 
 class Garage(models.Model):
+    ##############Mandatory to know garage owner ###################
+    owner = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='owned_garages', limit_choices_to={'role': 'garage_owner'})
+    ###############################################
     name = models.CharField(max_length=100)
     address = models.TextField()
     latitude = models.FloatField()
