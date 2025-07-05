@@ -50,6 +50,7 @@ class GarageSerializer(serializers.ModelSerializer):
                     (obj.latitude, obj.longitude)
                 ).km, 2)
         return None
+##########  grage registration serializer ##########
 class GarageRegistrationSerializer(serializers.ModelSerializer):
     number_of_spots = serializers.IntegerField(write_only=True)
 
@@ -76,3 +77,4 @@ class GarageRegistrationSerializer(serializers.ModelSerializer):
                 slot_number=f"SLOT-{i:03d}"
             )
         return garage
+########## end grage registration serializer ##########
