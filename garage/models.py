@@ -1,7 +1,11 @@
 from django.db import models
 from django.core.exceptions import ValidationError
 
+from accounts.models import CustomUser 
 class Garage(models.Model):
+    ##############Mandatory to know garage owner ###################
+    owner = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='owned_garages', limit_choices_to={'role': 'garage_owner'})
+    ###############################################
     name = models.CharField(max_length=100)
     address = models.TextField()
     latitude = models.FloatField()
@@ -10,6 +14,10 @@ class Garage(models.Model):
     closing_hour = models.TimeField()
     image = models.ImageField(upload_to='garage_images/', null=True, blank=True)
     price_per_hour = models.DecimalField(max_digits=6, decimal_places=2, default=0.0)
+    reservation_grace_period = models.PositiveIntegerField(
+        default=15,
+        help_text="مدة الحجز المؤقت بالدقائق قبل إلغائه تلقائيًا"
+    )
 
 
     def clean(self):
@@ -30,9 +38,10 @@ class GarageReview(models.Model):
 
 class ParkingSpot(models.Model):
     STATUS_CHOICES = [
-        ('available', 'Available'),
-        ('occupied', 'Occupied'),
-    ]
+    ('available', 'Available'),
+    ('occupied', 'Occupied'),
+    ('reserved', 'Reserved'),
+]
     garage = models.ForeignKey(Garage, on_delete=models.CASCADE, related_name='spots')
     slot_number = models.CharField(max_length=10)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='available')

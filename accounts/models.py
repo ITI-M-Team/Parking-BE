@@ -33,6 +33,7 @@ class CustomUserManager(BaseUserManager):
 
 
 class CustomUser(AbstractBaseUser, PermissionsMixin):
+
     ROLE_CHOICES = (
         ('driver', 'Driver'),
         ('garage_owner', 'Garage Owner'),
@@ -98,7 +99,10 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
             raise ValidationError(_("Phone number must be 11 digits"))
 
         super().clean()
-
+        #############################Handel naming 
+    class Meta:
+        verbose_name = "user"
+        verbose_name_plural = "users"
 
 
 #############################################################################
