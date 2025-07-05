@@ -1,4 +1,6 @@
-#!/mnt/data/ITI/F-Project/F-Repo/BK/Parking-BE/venv/bin/python3
+#!/bin/sh
+'''exec' "/home/ahmed-abd-elkader/parking /back/Parking-BE/venv/bin/python3" "$0" "$@"
+' '''
 # -*- coding: utf-8 -*-
 import re
 import sys

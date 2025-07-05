@@ -5,10 +5,11 @@ from rest_framework import status
 from django.db.models import Avg
 from django.db.models import Q
 from .serializers import GarageSerializer
+from rest_framework.permissions import IsAuthenticated
 
 from rest_framework import generics
 from .models import Garage, ParkingSpot
-from .serializers import GarageDetailSerializer, ParkingSpotSerializer
+from .serializers import *
 from geopy.distance import geodesic
 
 
@@ -63,3 +64,17 @@ class NearbyGaragesView(generics.ListAPIView):
 
     def get_serializer_context(self):
         return {'request': self.request}
+############## add garage data ######################
+class GarageRegisterView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        if request.user.role != 'garage_owner':
+            return Response({"detail": "Only garage owners can register garages."}, status=403)
+
+        serializer = GarageRegistrationSerializer(data=request.data)
+        if serializer.is_valid():
+            garage = serializer.save()
+            return Response({"detail": "Garage registered successfully.", "garage_id": garage.id}, status=201)
+        return Response(serializer.errors, status=400)
+###############end add garage data ######################

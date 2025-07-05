@@ -50,3 +50,29 @@ class GarageSerializer(serializers.ModelSerializer):
                     (obj.latitude, obj.longitude)
                 ).km, 2)
         return None
+class GarageRegistrationSerializer(serializers.ModelSerializer):
+    number_of_spots = serializers.IntegerField(write_only=True)
+
+    class Meta:
+        model = Garage
+        fields = [
+            'name', 'address', 'latitude', 'longitude',
+            'opening_hour', 'closing_hour', 'image',
+            'price_per_hour', 'number_of_spots'
+        ]
+
+    def validate_number_of_spots(self, value):
+        if value <= 0:
+            raise serializers.ValidationError("Number of parking spots must be greater than 0.")
+        return value
+
+    def create(self, validated_data):
+        number_of_spots = validated_data.pop('number_of_spots')
+        garage = Garage.objects.create(**validated_data)
+
+        for i in range(1, number_of_spots + 1):
+            ParkingSpot.objects.create(
+                garage=garage,
+                slot_number=f"SLOT-{i:03d}"
+            )
+        return garage
