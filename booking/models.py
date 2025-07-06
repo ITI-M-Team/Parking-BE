@@ -1,9 +1,8 @@
-# booking/models.py
-
 from django.db import models
 from django.utils import timezone
 from accounts.models import CustomUser
 from garage.models import ParkingSpot, Garage
+from django.core.validators import FileExtensionValidator
 
 class Booking(models.Model):
     STATUS_CHOICES = [
@@ -21,6 +20,13 @@ class Booking(models.Model):
     reservation_expiry_time = models.DateTimeField()
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
     created_at = models.DateTimeField(auto_now_add=True)
+    
+    qr_code_image = models.ImageField(
+        upload_to='qr_codes/',
+        null=True,
+        blank=True,
+        validators=[FileExtensionValidator(allowed_extensions=['png'])]
+    )
 
     def is_expired(self):
         return timezone.now() > self.reservation_expiry_time
