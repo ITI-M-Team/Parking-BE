@@ -79,3 +79,23 @@ Headers: Authorization: Bearer <access_token>
 
 ---
 
+
+booking/models.py → إضافة qr_code_image للحجز.
+
+booking/utils.py → كود توليد QR.
+
+booking/views.py → ربط QR بالحجز.
+
+booking/serializers.py → تعديل التفاصيل المرسلة للفرونت.
+
+
+
+
+
+/api/bookings/initiate/ → لإنشاء حجز + QR
+
+/api/bookings/<id>/ → عرض تفاصيل الحجز (بما في ذلك QR)
+
+
+
+

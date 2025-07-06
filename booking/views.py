@@ -4,10 +4,14 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from django.utils import timezone
 from datetime import timedelta
+from rest_framework.generics import RetrieveAPIView
+
 from .models import Booking
 from garage.models import ParkingSpot
-from .serializers import BookingInitiationSerializer
+from .serializers import BookingInitiationSerializer, BookingDetailSerializer
 from .tasks import send_expiry_warning
+from .utils import generate_qr_code_for_booking
+
 
 class BookingInitiateView(APIView):
     permission_classes = [IsAuthenticated]
@@ -39,14 +43,22 @@ class BookingInitiateView(APIView):
                 status='pending'
             )
 
-            # ✅ Schedule Celery task
+            generate_qr_code_for_booking(booking)
             send_expiry_warning.apply_async((booking.id,), countdown=grace_period * 60)
 
             return Response({
                 "booking_id": booking.id,
                 "estimated_cost": float(estimated_cost),
                 "reservation_expiry_time": expiry_time.isoformat(),
+                "qr_code_url": booking.qr_code_image.url,
                 "status": "success"
             }, status=201)
 
         return Response(serializer.errors, status=400)
+
+
+
+class BookingDetailView(RetrieveAPIView):
+    queryset = Booking.objects.all()
+    serializer_class = BookingDetailSerializer
+    lookup_field = 'id'
