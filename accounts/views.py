@@ -1,17 +1,19 @@
-from rest_framework import generics, status
+from rest_framework import generics, permissions , status
 from rest_framework.views import APIView
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from django.shortcuts import get_object_or_404
 from rest_framework.parsers import MultiPartParser, FormParser
 from django.contrib.auth import authenticate
 from django.contrib.auth.hashers import make_password
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
 from django.core.mail import send_mail
 from django.shortcuts import redirect
 from django.conf import settings
 from django.db.models import Q
 
 from .models import *
-from rest_framework.views import APIView
 from .serializers import *
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser, FormParser
@@ -68,24 +70,7 @@ class ActivateUserView(APIView):
         except (TypeError, ValueError, OverflowError, CustomUser.DoesNotExist):
             return redirect(f"{settings.FRONTEND_BASE_URL}/activation?status=invalid-link")
 
-# class ActivateUserView(APIView):
-#     def get(self, request, uidb64, token):
-#         try:
-#             uid = force_str(urlsafe_base64_decode(uidb64))
-#             user = CustomUser.objects.get(pk=uid)
 
-#             if user.is_active:
-#                 return Response({'message': 'Account already activated.'})
-
-#             if default_token_generator.check_token(user, token):
-#                 user.is_active = True
-#                 user.save()
-#                 return Response({'message': 'Account activated successfully.'}, status=200)
-#             else:
-#                 return Response({'error': 'Invalid activation token.'}, status=400)
-
-#         except (TypeError, ValueError, OverflowError, CustomUser.DoesNotExist):
-#             return Response({'error': 'Invalid activation link.'}, status=400)        
 
 
 class CustomTokenObtainPairView(TokenObtainPairView):
@@ -108,9 +93,11 @@ class CurrentUserView(APIView):
             "role": user.role,
             "national_id": user.national_id,
             "phone": user.phone,
+            "verification_status":user.verification_status,
             "driver_license": build_url(user.driver_license),
             "car_license": build_url(user.car_license),
             "national_id_img": build_url(user.national_id_img),
+            "profile_image": build_url(user.profile_image),
         })
 
     def put(self, request):
@@ -246,4 +233,101 @@ class PasswordResetConfirmView(generics.CreateAPIView):
 
         return Response({"detail": "Password has been reset successfully"}, status=status.HTTP_200_OK)
 
+### List all user's requests to be reviewed ####
+class VerificationRequestListView(generics.ListAPIView):
+    serializer_class = VerificationRequestSerializer
+    permission_classes = [permissions.IsAdminUser]
+    
+    def get_queryset(self):
+        queryset = VerificationRequest.objects.all().order_by('-created_at')
+        status_filter = self.request.query_params.get('status', None)
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+        return queryset
+    
+###   -------Send email notification to user about verification status _______
+def send_verification_email(user, verification_status, reason='', is_resubmission=False):
+    subject_map = {
+        'Verified': 'Account Verified - Welcome!',
+        'Rejected': 'Account Verification Rejected',
+        'Pending': 'Account Under Review'
+    }
+    if is_resubmission and verification_status == 'Pending':
+        subject = 'Document Resubmission Received - Under Review'
+    else:
+        subject = subject_map.get(verification_status, 'Account Status Update')
+    context = {
+        'user': user,
+        'status': verification_status,
+        'reason': reason,
+        'is_resubmission': is_resubmission,
+        'site_name': getattr(settings, 'Smart Parking', 'Smart Parking'),
+    }
+    html_message = render_to_string('emails/verification_status.html', context)
+    plain_message = strip_tags(html_message)
+    send_mail(
+        subject,
+        plain_message,
+        settings.DEFAULT_FROM_EMAIL,
+        [user.email],
+        html_message=html_message,
+        fail_silently=False,
+    )
 
+#########   Update verification status and send email notification    ###########
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAdminUser])
+def update_verification_status(request, request_id):
+    verification_request = get_object_or_404(VerificationRequest, id=request_id)
+    serializer = VerificationActionSerializer(data=request.data)
+    
+    if serializer.is_valid():
+        new_status = serializer.validated_data['status']
+        reason = serializer.validated_data.get('reason', '')
+        
+        old_status = verification_request.status
+        # ___Update verification request__
+        verification_request.status = new_status
+        verification_request.reason = reason
+        verification_request.reviewed_by = request.user
+        verification_request.save()
+        
+        # +____Update user verification status___
+        user = verification_request.user
+        user.verification_status = new_status
+        user.save()
+        # ### Send email notification---------
+        send_verification_email(user, new_status, reason)
+        return Response({
+            'message': 'Verification status updated successfully',
+            'status': new_status,
+            'user_email': user.email,
+            'previous_status': old_status
+        })
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+##### ----------   Get verification statistics for dashboard   -------------- ######
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAdminUser])
+def verification_stats(request):
+    total_requests = VerificationRequest.objects.count()
+    pending_requests = VerificationRequest.objects.filter(status='Pending').count()
+    verified_requests = VerificationRequest.objects.filter(status='Verified').count()
+    rejected_requests = VerificationRequest.objects.filter(status='Rejected').count()
+
+    # Had a reason before (was rejected)##
+    resubmission_count = VerificationRequest.objects.filter(
+        status='Pending',
+        reason__isnull=False  
+    ).count()
+
+    return Response({
+        'total_requests': total_requests,
+        'pending_requests': pending_requests,
+        'verified_requests': verified_requests,
+        'rejected_requests': rejected_requests,
+        'resubmission_count': resubmission_count,
+        'verification_rate': (verified_requests / total_requests * 100) if total_requests > 0 else 0
+    })
