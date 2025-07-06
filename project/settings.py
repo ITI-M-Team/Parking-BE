@@ -71,7 +71,7 @@ ROOT_URLCONF = 'project.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [os.path.join(BASE_DIR ,'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -179,3 +179,9 @@ DEFAULT_FROM_EMAIL = 'appparking653@gmail.com'
 TWILIO_ACCOUNT_SID = 'AC4e6d3cf6e6e3738773edb526a9500c23'
 TWILIO_AUTH_TOKEN = '189a3dbfcec6275f29c4f54a0662d793'
 TWILIO_WHATSAPP_NUMBER = 'whatsapp:+14155238886'
+
+
+##-----  File size limits  = 10MP------
+
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  

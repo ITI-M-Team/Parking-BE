@@ -1,6 +1,7 @@
 # Python
 _pycache_/
-
+*.py[cod]
+*.pyc
 # VSCode settings
 .vscode/
 
@@ -12,8 +13,23 @@ _pycache_/
 venv/
 .env
 ~       
+
+# Database files
+*.sqlite3
+*.db
+*.sqlite
+db.sqlite3
+
 # Media and static files
 /media/
 
 _pycache_/
 *.py[cod]
+
+# IDE specific files
+.idea/
+*.swp
+*.swo
+
+# Log files
+*.log

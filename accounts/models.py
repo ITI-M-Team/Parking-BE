@@ -1,3 +1,4 @@
+import os
 from django.db import models
 from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
@@ -74,6 +75,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     driver_license = models.FileField(upload_to='documents/driver/', blank=True, null=True)
     car_license = models.FileField(upload_to='documents/car/', blank=True, null=True)
     national_id_img = models.FileField(upload_to='documents/national_id/', blank=True, null=True)
+    profile_image = models.ImageField(upload_to='profile_images/',blank=True,null=True,verbose_name="Profile Image")
 
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
@@ -97,9 +99,35 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 
         if len(self.phone) != 11:
             raise ValidationError(_("Phone number must be 11 digits"))
-
+# Profile Image Validation
+        if self.profile_image:
+            ###add limit for image maximum  5MB limit
+            if self.profile_image.size > 5 * 1024 * 1024:  
+                raise ValidationError(_("Profile image must be less than 5MB"))
+        
+        valid_extensions = ['.jpg', '.jpeg', '.png', '.gif']
+        ext = os.path.splitext(self.profile_image.name)[1].lower()
+        if ext not in valid_extensions:
+            raise ValidationError(_("Profile image must be a valid image file (jpg, jpeg, png, gif)"))
         super().clean()
-        #############################Handel naming 
+    ### """Check if user has uploaded any documents"""
+    @property
+    def has_documents(self):
+        return bool(self.driver_license or self.car_license or self.national_id_img)
+    
+    ###"""Get list of missing documents based on role"""
+    @property
+    def missing_documents(self):
+        missing = []
+        if self.role == 'driver':
+            if not self.driver_license:
+                missing.append('Driver License')
+            if not self.car_license:
+                missing.append('Car License')
+        if not self.national_id_img:
+            missing.append('National ID Image')
+        return missing
+    #############################Handel naming 
     class Meta:
         verbose_name = "user"
         verbose_name_plural = "users"
@@ -152,3 +180,34 @@ class PasswordResetOTP(models.Model):
             return message.sid
         except Exception as e:
             raise Exception(f"Failed to send WhatsApp message: {str(e)}")
+        
+        
+############# Model to track verification requests and admin actions  #####################
+
+class VerificationRequest(models.Model):
+    STATUS_CHOICES = (
+        ('Pending', 'Pending'),
+        ('Verified', 'Verified'),
+        ('Rejected', 'Rejected'),
+    )
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='verification_requests')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Pending')
+    reason = models.TextField(blank=True, null=True, help_text="Reason for rejection or additional notes")
+    reviewed_by = models.ForeignKey(
+        CustomUser, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='reviewed_requests',
+        limit_choices_to={'is_superuser': True}
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Verification Request"
+        verbose_name_plural = "Verification Requests"
+    
+    def __str__(self):
+        return f"Verification Request for {self.user.email} - {self.status}"
