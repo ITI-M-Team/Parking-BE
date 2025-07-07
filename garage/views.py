@@ -78,3 +78,22 @@ class GarageRegisterView(APIView):
             return Response({"detail": "Garage registered successfully.", "garage_id": garage.id}, status=201)
         return Response(serializer.errors, status=400)
 ###############end add garage data ######################
+##############update garage data ######################
+class GarageUpdateView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def put(self, request, id):
+        try:
+            garage = Garage.objects.get(id=id)
+        except Garage.DoesNotExist:
+            return Response({"error": "Garage not found."}, status=404)
+
+        if request.user.role != 'garage_owner':
+            return Response({"error": "Only garage owners can update garages."}, status=403)
+
+        serializer = GarageDetailSerializer(garage, data=request.data, partial=True, context={'request': request})
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=400)
+###############end update garage data ######################
