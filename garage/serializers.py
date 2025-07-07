@@ -68,8 +68,13 @@ class GarageRegistrationSerializer(serializers.ModelSerializer):
         return value
 
     def create(self, validated_data):
+        request = self.context.get('request')
         number_of_spots = validated_data.pop('number_of_spots')
-        garage = Garage.objects.create(**validated_data)
+
+        garage = Garage.objects.create(
+            owner=request.user,  # ✅ Assign the logged-in user
+            **validated_data
+        )
 
         for i in range(1, number_of_spots + 1):
             ParkingSpot.objects.create(
@@ -77,4 +82,15 @@ class GarageRegistrationSerializer(serializers.ModelSerializer):
                 slot_number=f"SLOT-{i:03d}"
             )
         return garage
+
 ########## end grage registration serializer ##########
+############## Garage Update Serializer ##########
+class GarageUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Garage
+        fields = [
+            'name', 'address', 'latitude', 'longitude',
+            'opening_hour', 'closing_hour', 'image',
+            'price_per_hour'
+        ]
+#################end Garage Update Serializer ##########

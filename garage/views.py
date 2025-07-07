@@ -72,7 +72,7 @@ class GarageRegisterView(APIView):
         if request.user.role != 'garage_owner':
             return Response({"detail": "Only garage owners can register garages."}, status=403)
 
-        serializer = GarageRegistrationSerializer(data=request.data)
+        serializer = GarageRegistrationSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
             garage = serializer.save()
             return Response({"detail": "Garage registered successfully.", "garage_id": garage.id}, status=201)
@@ -88,10 +88,10 @@ class GarageUpdateView(APIView):
         except Garage.DoesNotExist:
             return Response({"error": "Garage not found."}, status=404)
 
-        if request.user.role != 'garage_owner':
-            return Response({"error": "Only garage owners can update garages."}, status=403)
+        if request.user != garage.owner:
+            return Response({"error": "You can only update your own garage."}, status=403)
 
-        serializer = GarageDetailSerializer(garage, data=request.data, partial=True, context={'request': request})
+        serializer = GarageUpdateSerializer(garage, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
