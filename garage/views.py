@@ -11,6 +11,7 @@ from rest_framework import generics
 from .models import Garage, ParkingSpot
 from .serializers import *
 from geopy.distance import geodesic
+from rest_framework.decorators import api_view, permission_classes
 
 
 
@@ -97,3 +98,30 @@ class GarageUpdateView(APIView):
             return Response(serializer.data)
         return Response(serializer.errors, status=400)
 ###############end update garage data ######################
+###############realtime occupancy ######################
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def garage_occupancy_view(request, garage_id):
+    try:
+        garage = Garage.objects.get(id=garage_id)
+    except Garage.DoesNotExist:
+        return Response({"error": "Garage not found."}, status=status.HTTP_404_NOT_FOUND)
+
+    # Only the owner can view the occupancy of their garage
+    if request.user != garage.owner:
+        return Response({"error": "You can only view your own garage occupancy."}, status=403)
+
+    total = garage.spots.count()
+    occupied = garage.spots.filter(status='occupied').count()
+    available = garage.spots.filter(status='available').count()
+    reserved = garage.spots.filter(status='reserved').count()
+
+    return Response({
+        "garage_id": garage.id,
+        "garage_name": garage.name,
+        "total_spots": total,
+        "occupied_spots": occupied,
+        "available_spots": available,
+        "reserved_spots": reserved
+    })
+###############end realtime occupancy ######################
