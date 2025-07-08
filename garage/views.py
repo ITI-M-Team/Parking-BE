@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -80,23 +80,23 @@ class GarageRegisterView(APIView):
         return Response(serializer.errors, status=400)
 ###############end add garage data ######################
 ##############update garage data ######################
-class GarageUpdateView(APIView):
+class GarageUpdateAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def put(self, request, id):
-        try:
-            garage = Garage.objects.get(id=id)
-        except Garage.DoesNotExist:
-            return Response({"error": "Garage not found."}, status=404)
-
-        if request.user != garage.owner:
-            return Response({"error": "You can only update your own garage."}, status=403)
+        # Ensure the garage belongs to the current user
+        garage = get_object_or_404(Garage, id=id, owner=request.user)
 
         serializer = GarageUpdateSerializer(garage, data=request.data, partial=True)
+
         if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=400)
+            updated_instance = serializer.save()
+            return Response({
+                "detail": "Garage updated successfully.",
+                "garage_id": updated_instance.id,
+            }, status=status.HTTP_200_OK)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 ###############end update garage data ######################
 ###############realtime occupancy ######################
 @api_view(['GET'])
@@ -125,3 +125,16 @@ def garage_occupancy_view(request, garage_id):
         "reserved_spots": reserved
     })
 ###############end realtime occupancy ######################
+class GarageDetailView(APIView):
+    def get(self, request, id):
+        try:
+            garage = Garage.objects.annotate(
+                average_rating=Avg('reviews__rating')
+            ).get(id=id)
+
+            data = GarageDetailSerializer(garage, context={'request': request}).data
+            data["number_of_spots"] = garage.spots.count()
+
+            return Response(data)
+        except Garage.DoesNotExist:
+            return Response({"error": "Garage not found"}, status=status.HTTP_404_NOT_FOUND)

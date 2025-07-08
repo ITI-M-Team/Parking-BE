@@ -85,12 +85,46 @@ class GarageRegistrationSerializer(serializers.ModelSerializer):
 
 ########## end grage registration serializer ##########
 ############## Garage Update Serializer ##########
+# serializers.py
 class GarageUpdateSerializer(serializers.ModelSerializer):
+    number_of_spots = serializers.IntegerField(write_only=True, required=False)
+
     class Meta:
         model = Garage
         fields = [
             'name', 'address', 'latitude', 'longitude',
             'opening_hour', 'closing_hour', 'image',
-            'price_per_hour'
+            'price_per_hour', 'reservation_grace_period',
+            'number_of_spots',
         ]
+
+    def update(self, instance, validated_data):
+        number_of_spots = validated_data.pop('number_of_spots', None)
+
+        # ✅ Update all other fields
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+
+        # ✅ Handle parking spots adjustment
+        if number_of_spots is not None:
+            current_count = instance.spots.count()
+
+            if number_of_spots > current_count:
+                for i in range(current_count + 1, number_of_spots + 1):
+                    ParkingSpot.objects.create(
+                        garage=instance,
+                        slot_number=f"SLOT-{i:03d}"
+                    )
+            elif number_of_spots < current_count:
+                # Only delete available spots (leave reserved/occupied untouched)
+                removable_spots = list(
+                    instance.spots.filter(status='available').order_by('-id')
+                )
+                to_delete = removable_spots[:current_count - number_of_spots]
+                for spot in to_delete:
+                    spot.delete()
+
+        return instance
+
 #################end Garage Update Serializer ##########
