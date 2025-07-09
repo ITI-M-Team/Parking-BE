@@ -1,24 +1,16 @@
-from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status
-from django.db.models import Avg
+from rest_framework import status, generics
 from django.db.models import Q
-from .serializers import GarageSerializer
-
-from rest_framework import generics
-from .models import Garage, ParkingSpot
-from .serializers import GarageDetailSerializer, ParkingSpotSerializer
 from geopy.distance import geodesic
-
+from .models import Garage, ParkingSpot
+from .serializers import GarageSerializer, GarageDetailSerializer, ParkingSpotSerializer
 
 
 class GarageDetailView(APIView):
     def get(self, request, id):
         try:
-            garage = Garage.objects.annotate(
-                average_rating=Avg('reviews__rating')
-            ).get(id=id)
+            garage = Garage.objects.get(id=id)
             serializer = GarageDetailSerializer(garage, context={'request': request})
             return Response(serializer.data)
         except Garage.DoesNotExist:
@@ -30,10 +22,8 @@ class GarageSpotsView(APIView):
         spots = ParkingSpot.objects.filter(garage_id=id)
         serializer = ParkingSpotSerializer(spots, many=True)
         return Response(serializer.data)
-    
 
 
-# Nearby Garages View
 class NearbyGaragesView(generics.ListAPIView):
     serializer_class = GarageSerializer
 

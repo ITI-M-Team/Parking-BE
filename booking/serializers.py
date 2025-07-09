@@ -1,5 +1,15 @@
+# booking/serializers.py
+
 from rest_framework import serializers
 from garage.models import ParkingSpot, Garage
+from booking.models import Booking
+from django.utils import timezone
+from datetime import timedelta
+from django.contrib.auth import get_user_model
+from garage.serializers import GarageSerializer, ParkingSpotSerializer
+
+User = get_user_model()
+
 
 class BookingInitiationSerializer(serializers.Serializer):
     garage_id = serializers.IntegerField()
@@ -9,6 +19,7 @@ class BookingInitiationSerializer(serializers.Serializer):
     def validate(self, data):
         garage_id = data.get('garage_id')
         spot_id = data.get('parking_spot_id')
+        estimated_time = data.get("estimated_arrival_time")
 
         try:
             garage = Garage.objects.get(id=garage_id)
@@ -23,7 +34,32 @@ class BookingInitiationSerializer(serializers.Serializer):
         if spot.status != 'available':
             raise serializers.ValidationError({"parking_spot_id": "This parking spot is not available."})
 
-        self.garage = garage
-        self.spot = spot
+        dummy_user = User.objects.first()
+        grace_period = garage.reservation_grace_period
+        expiry_time = estimated_time + timedelta(minutes=grace_period)
 
+        overlapping_booking = Booking.objects.filter(
+            driver=dummy_user,
+            status__in=["pending", "confirmed"],
+            estimated_arrival_time__lt=expiry_time,
+            reservation_expiry_time__gt=estimated_time
+        ).exists()
+
+        if overlapping_booking:
+            raise serializers.ValidationError("You already have a booking during this time window.")
+
+        data['garage'] = garage
+        data['spot'] = spot
         return data
+
+
+class BookingDetailSerializer(serializers.ModelSerializer):
+    garage = GarageSerializer()
+    parking_spot = ParkingSpotSerializer()
+
+    class Meta:
+        model = Booking
+        fields = [
+            'id', 'garage', 'parking_spot',
+            'estimated_arrival_time', 'reservation_expiry_time', 'status'
+        ]

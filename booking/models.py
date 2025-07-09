@@ -1,5 +1,3 @@
-# booking/models.py
-
 from django.db import models
 from django.utils import timezone
 from accounts.models import CustomUser
@@ -11,6 +9,7 @@ class Booking(models.Model):
         ('confirmed', 'Confirmed'),
         ('expired', 'Expired'),
         ('cancelled', 'Cancelled'),
+        ('awaiting_response', 'Awaiting Response'),
     ]
 
     driver = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
@@ -19,7 +18,7 @@ class Booking(models.Model):
     estimated_arrival_time = models.DateTimeField()
     estimated_cost = models.DecimalField(max_digits=6, decimal_places=2, default=0)
     reservation_expiry_time = models.DateTimeField()
-    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     created_at = models.DateTimeField(auto_now_add=True)
 
     def is_expired(self):

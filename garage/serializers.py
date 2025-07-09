@@ -1,24 +1,19 @@
 from rest_framework import serializers
-
 from .models import Garage, ParkingSpot
 from geopy.distance import geodesic
 
 
-
 class GarageDetailSerializer(serializers.ModelSerializer):
-    average_rating = serializers.FloatField()
-    image = serializers.ImageField() 
+    average_rating = serializers.SerializerMethodField()
+    image = serializers.ImageField()
 
     class Meta:
         model = Garage
         fields = ['id', 'name', 'address', 'latitude', 'longitude',
-                  'opening_hour', 'closing_hour', 'average_rating','image', 'price_per_hour']
-    
-    def get_image_url(self, obj):
-        request = self.context.get('request')
-        if obj.image:
-            return request.build_absolute_uri(obj.image.url)
-        return None
+                  'opening_hour', 'closing_hour', 'average_rating', 'image', 'price_per_hour']
+
+    def get_average_rating(self, obj):
+        return obj.average_rating
 
 
 class ParkingSpotSerializer(serializers.ModelSerializer):
@@ -27,17 +22,14 @@ class ParkingSpotSerializer(serializers.ModelSerializer):
         fields = ['id', 'slot_number', 'status']
 
 
-
-
-
-
 class GarageSerializer(serializers.ModelSerializer):
     distance = serializers.SerializerMethodField()
+    average_rating = serializers.SerializerMethodField()
 
     class Meta:
         model = Garage
         fields = ['id', 'name', 'address', 'latitude', 'longitude',
-                  'price_per_hour',  'distance']
+                  'price_per_hour', 'distance', 'average_rating']
 
     def get_distance(self, obj):
         request = self.context.get('request')
@@ -50,3 +42,6 @@ class GarageSerializer(serializers.ModelSerializer):
                     (obj.latitude, obj.longitude)
                 ).km, 2)
         return None
+
+    def get_average_rating(self, obj):
+        return obj.average_rating
