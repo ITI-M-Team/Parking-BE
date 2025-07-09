@@ -5,14 +5,17 @@ from rest_framework import status
 from django.db.models import Avg
 from django.db.models import Q
 from .serializers import GarageSerializer
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 
 from rest_framework import generics
 from .models import Garage, ParkingSpot
+from booking.models import Booking
+from django.utils import timezone
+from django.shortcuts import get_object_or_404
 from .serializers import *
 from geopy.distance import geodesic
 from rest_framework.decorators import api_view, permission_classes
-
+import traceback
 
 
 class GarageDetailView(APIView):
@@ -99,31 +102,26 @@ class GarageUpdateAPIView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 ###############end update garage data ######################
 ###############realtime occupancy ######################
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def garage_occupancy_view(request, garage_id):
-    try:
-        garage = Garage.objects.get(id=garage_id)
-    except Garage.DoesNotExist:
-        return Response({"error": "Garage not found."}, status=status.HTTP_404_NOT_FOUND)
+class GarageOccupancyView(APIView):
+    permission_classes = [IsAuthenticatedOrReadOnly]
 
-    # Only the owner can view the occupancy of their garage
-    if request.user != garage.owner:
-        return Response({"error": "You can only view your own garage occupancy."}, status=403)
+    def get(self, request, garage_id):
+        try:
+            garage = Garage.objects.get(id=garage_id)
+        except Garage.DoesNotExist:
+            return Response({'error': 'Garage not found'}, status=404)
 
-    total = garage.spots.count()
-    occupied = garage.spots.filter(status='occupied').count()
-    available = garage.spots.filter(status='available').count()
-    reserved = garage.spots.filter(status='reserved').count()
+        all_spots = ParkingSpot.objects.filter(garage=garage)
+        total_spots = all_spots.count()
+        occupied_spots = all_spots.filter(status__in=['reserved', 'occupied']).count()
+        available_spots = total_spots - occupied_spots
 
-    return Response({
-        "garage_id": garage.id,
-        "garage_name": garage.name,
-        "total_spots": total,
-        "occupied_spots": occupied,
-        "available_spots": available,
-        "reserved_spots": reserved
-    })
+        return Response({
+            'garage_id': garage.id,
+            'total_spots': total_spots,
+            'occupied_spots': occupied_spots,
+            'available_spots': available_spots
+        })
 ###############end realtime occupancy ######################
 class GarageDetailView(APIView):
     def get(self, request, id):
