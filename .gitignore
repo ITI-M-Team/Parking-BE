@@ -22,6 +22,7 @@ db.sqlite3
 
 # Media and static files
 /media/
+<<<<<<< HEAD
 
 _pycache_/
 *.py[cod]
@@ -33,3 +34,7 @@ _pycache_/
 
 # Log files
 *.log
+=======
+*.pyc
+__pycache__/
+>>>>>>> CU-8699n7pkq_Sub-task-236-Occupancy-Tracking-Logic_Ahmed-Mohamed

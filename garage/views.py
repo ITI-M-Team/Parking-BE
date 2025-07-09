@@ -1,16 +1,21 @@
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from django.db.models import Avg
 from django.db.models import Q
 from .serializers import GarageSerializer
+from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 
 from rest_framework import generics
 from .models import Garage, ParkingSpot
-from .serializers import GarageDetailSerializer, ParkingSpotSerializer
+from booking.models import Booking
+from django.utils import timezone
+from django.shortcuts import get_object_or_404
+from .serializers import *
 from geopy.distance import geodesic
-
+from rest_framework.decorators import api_view, permission_classes
+import traceback
 
 
 class GarageDetailView(APIView):
@@ -63,3 +68,71 @@ class NearbyGaragesView(generics.ListAPIView):
 
     def get_serializer_context(self):
         return {'request': self.request}
+############## add garage data ######################
+class GarageRegisterView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        if request.user.role != 'garage_owner':
+            return Response({"detail": "Only garage owners can register garages."}, status=403)
+
+        serializer = GarageRegistrationSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            garage = serializer.save()
+            return Response({"detail": "Garage registered successfully.", "garage_id": garage.id}, status=201)
+        return Response(serializer.errors, status=400)
+###############end add garage data ######################
+##############update garage data ######################
+class GarageUpdateAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def put(self, request, id):
+        # Ensure the garage belongs to the current user
+        garage = get_object_or_404(Garage, id=id, owner=request.user)
+
+        serializer = GarageUpdateSerializer(garage, data=request.data, partial=True)
+
+        if serializer.is_valid():
+            updated_instance = serializer.save()
+            return Response({
+                "detail": "Garage updated successfully.",
+                "garage_id": updated_instance.id,
+            }, status=status.HTTP_200_OK)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+###############end update garage data ######################
+###############realtime occupancy ######################
+class GarageOccupancyView(APIView):
+    permission_classes = [IsAuthenticatedOrReadOnly]
+
+    def get(self, request, garage_id):
+        try:
+            garage = Garage.objects.get(id=garage_id)
+        except Garage.DoesNotExist:
+            return Response({'error': 'Garage not found'}, status=404)
+
+        all_spots = ParkingSpot.objects.filter(garage=garage)
+        total_spots = all_spots.count()
+        occupied_spots = all_spots.filter(status__in=['reserved', 'occupied']).count()
+        available_spots = total_spots - occupied_spots
+
+        return Response({
+            'garage_id': garage.id,
+            'total_spots': total_spots,
+            'occupied_spots': occupied_spots,
+            'available_spots': available_spots
+        })
+###############end realtime occupancy ######################
+class GarageDetailView(APIView):
+    def get(self, request, id):
+        try:
+            garage = Garage.objects.annotate(
+                average_rating=Avg('reviews__rating')
+            ).get(id=id)
+
+            data = GarageDetailSerializer(garage, context={'request': request}).data
+            data["number_of_spots"] = garage.spots.count()
+
+            return Response(data)
+        except Garage.DoesNotExist:
+            return Response({"error": "Garage not found"}, status=status.HTTP_404_NOT_FOUND)
