@@ -48,6 +48,7 @@ class BookingInitiationSerializer(serializers.Serializer):
         if overlapping_booking:
             raise serializers.ValidationError("You already have a booking during this time window.")
 
+        # Attach validated objects to data
         data['garage'] = garage
         data['spot'] = spot
         return data

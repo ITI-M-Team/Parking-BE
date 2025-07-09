@@ -22,12 +22,10 @@ class BookingInitiateView(APIView):
             garage = serializer.validated_data['garage']
             spot = serializer.validated_data['spot']
             arrival_time = serializer.validated_data['estimated_arrival_time']
-            grace_period = garage.reservation_grace_period
-            expiry_time = arrival_time + timedelta(minutes=grace_period)
 
-            # Dummy user for now
             dummy_user = User.objects.first()
 
+            # Save booking - expiry time handled by model's save()
             spot.status = 'reserved'
             spot.save()
 
@@ -36,19 +34,18 @@ class BookingInitiateView(APIView):
                 garage=garage,
                 parking_spot=spot,
                 estimated_arrival_time=arrival_time,
-                reservation_expiry_time=expiry_time,
                 status='pending'
             )
 
-            send_expiry_warning.apply_async((booking.id,), eta=expiry_time)
+            send_expiry_warning.apply_async((booking.id,), eta=booking.reservation_expiry_time)
 
             return Response({
                 "booking_id": booking.id,
-                "reservation_expiry_time": expiry_time.isoformat(),
+                "reservation_expiry_time": booking.reservation_expiry_time.isoformat(),
                 "status": "success"
-            }, status=201)
+            }, status=status.HTTP_201_CREATED)
 
-        return Response(serializer.errors, status=400)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class BookingRetrieveView(RetrieveAPIView):
