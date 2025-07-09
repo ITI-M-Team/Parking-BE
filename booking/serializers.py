@@ -55,12 +55,14 @@ class BookingInitiationSerializer(serializers.Serializer):
 
 
 class BookingDetailSerializer(serializers.ModelSerializer):
-    garage = GarageSerializer()
-    parking_spot = ParkingSpotSerializer()
+    garage_name = serializers.CharField(source='garage.name', read_only=True)
+    spot_id = serializers.IntegerField(source='parking_spot.id', read_only=True)
 
     class Meta:
         model = Booking
         fields = [
-            'id', 'garage', 'parking_spot',
-            'estimated_arrival_time', 'reservation_expiry_time', 'status'
+            'id', 'garage_name', 'spot_id',
+            'estimated_arrival_time',
+            'reservation_expiry_time', 'status',
+            'qr_code_image'
         ]

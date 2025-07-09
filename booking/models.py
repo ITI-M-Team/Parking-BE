@@ -3,6 +3,7 @@ from django.utils import timezone
 from datetime import timedelta
 from accounts.models import CustomUser
 from garage.models import ParkingSpot, Garage
+from django.core.validators import FileExtensionValidator
 
 class Booking(models.Model):
     STATUS_CHOICES = [
@@ -21,6 +22,13 @@ class Booking(models.Model):
     reservation_expiry_time = models.DateTimeField(blank=True, null=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     created_at = models.DateTimeField(auto_now_add=True)
+    
+    qr_code_image = models.ImageField(
+        upload_to='qr_codes/',
+        null=True,
+        blank=True,
+        validators=[FileExtensionValidator(allowed_extensions=['png'])]
+    )
 
     def save(self, *args, **kwargs):
         if not self.reservation_expiry_time and self.estimated_arrival_time:

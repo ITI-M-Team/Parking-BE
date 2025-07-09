@@ -11,7 +11,7 @@ from .models import Booking
 from garage.models import ParkingSpot
 from .serializers import BookingInitiationSerializer, BookingDetailSerializer
 from .tasks import send_expiry_warning
-
+from .utils import generate_qr_code_for_booking
 User = get_user_model()
 
 
@@ -36,6 +36,8 @@ class BookingInitiateView(APIView):
                 estimated_arrival_time=arrival_time,
                 status='pending'
             )
+            
+            generate_qr_code_for_booking(booking)
 
             send_expiry_warning.apply_async((booking.id,), eta=booking.reservation_expiry_time)
 
@@ -51,3 +53,5 @@ class BookingInitiateView(APIView):
 class BookingRetrieveView(RetrieveAPIView):
     queryset = Booking.objects.all()
     serializer_class = BookingDetailSerializer
+    lookup_field = 'id'
+
