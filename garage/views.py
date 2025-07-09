@@ -1,32 +1,37 @@
 from django.shortcuts import render, get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status
-from django.db.models import Avg
-from django.db.models import Q
-from .serializers import GarageSerializer, GarageDetailSerializer, ParkingSpotSerializer
+from rest_framework import status, generics
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
+from django.db.models import Avg, Q
+from django.utils import timezone
+from geopy.distance import geodesic
 
-from rest_framework import generics
 from .models import Garage, ParkingSpot
 from booking.models import Booking
-from django.utils import timezone
-from django.shortcuts import get_object_or_404
-from .serializers import *
-from geopy.distance import geodesic
-from rest_framework.decorators import api_view, permission_classes
-import traceback
+from .serializers import (
+    GarageSerializer, GarageDetailSerializer, ParkingSpotSerializer,
+    GarageRegistrationSerializer, GarageUpdateSerializer
+)
 
+# ✅ Garage Detail View (Fixed)
 class GarageDetailView(APIView):
     def get(self, request, id):
         try:
-            garage = Garage.objects.get(id=id)
-            serializer = GarageDetailSerializer(garage, context={'request': request})
-            return Response(serializer.data)
+            garage = Garage.objects.annotate(
+                avg_rating=Avg('reviews__rating')  # use alias to avoid @property conflict
+            ).get(id=id)
+
+            data = GarageDetailSerializer(garage, context={'request': request}).data
+            data["number_of_spots"] = garage.spots.count()
+            data["average_rating"] = round(garage.avg_rating or 0.0, 1)
+
+            return Response(data)
         except Garage.DoesNotExist:
             return Response({"error": "Garage not found"}, status=status.HTTP_404_NOT_FOUND)
 
 
+# ✅ Garage Spots
 class GarageSpotsView(APIView):
     def get(self, request, id):
         spots = ParkingSpot.objects.filter(garage_id=id)
@@ -34,8 +39,7 @@ class GarageSpotsView(APIView):
         return Response(serializer.data)
 
 
-
-# Nearby Garages View
+# ✅ Nearby Garages with distance
 class NearbyGaragesView(generics.ListAPIView):
     serializer_class = GarageSerializer
 
@@ -46,26 +50,19 @@ class NearbyGaragesView(generics.ListAPIView):
         query = self.request.query_params.get('search')
 
         if query:
-            queryset = queryset.filter(
-                Q(name__icontains=query) |
-                Q(address__icontains=query)
-            )
+            queryset = queryset.filter(Q(name__icontains=query) | Q(address__icontains=query))
 
         if lat and lon:
             user_location = (float(lat), float(lon))
-            queryset = sorted(
-                queryset,
-                key=lambda garage: geodesic(
-                    user_location,
-                    (garage.latitude, garage.longitude)
-                ).km
-            )
+            queryset = sorted(queryset, key=lambda garage: geodesic(user_location, (garage.latitude, garage.longitude)).km)
 
         return queryset
 
     def get_serializer_context(self):
         return {'request': self.request}
-############## add garage data ######################
+
+
+# ✅ Register Garage
 class GarageRegisterView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -78,15 +75,14 @@ class GarageRegisterView(APIView):
             garage = serializer.save()
             return Response({"detail": "Garage registered successfully.", "garage_id": garage.id}, status=201)
         return Response(serializer.errors, status=400)
-###############end add garage data ######################
-##############update garage data ######################
+
+
+# ✅ Update Garage
 class GarageUpdateAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def put(self, request, id):
-        # Ensure the garage belongs to the current user
         garage = get_object_or_404(Garage, id=id, owner=request.user)
-
         serializer = GarageUpdateSerializer(garage, data=request.data, partial=True)
 
         if serializer.is_valid():
@@ -97,8 +93,9 @@ class GarageUpdateAPIView(APIView):
             }, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-###############end update garage data ######################
-###############realtime occupancy ######################
+
+
+# ✅ Realtime Occupancy
 class GarageOccupancyView(APIView):
     permission_classes = [IsAuthenticatedOrReadOnly]
 
@@ -119,17 +116,3 @@ class GarageOccupancyView(APIView):
             'occupied_spots': occupied_spots,
             'available_spots': available_spots
         })
-###############end realtime occupancy ######################
-class GarageDetailView(APIView):
-    def get(self, request, id):
-        try:
-            garage = Garage.objects.annotate(
-                average_rating=Avg('reviews__rating')
-            ).get(id=id)
-
-            data = GarageDetailSerializer(garage, context={'request': request}).data
-            data["number_of_spots"] = garage.spots.count()
-
-            return Response(data)
-        except Garage.DoesNotExist:
-            return Response({"error": "Garage not found"}, status=status.HTTP_404_NOT_FOUND)

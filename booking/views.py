@@ -54,4 +54,5 @@ class BookingRetrieveView(RetrieveAPIView):
     queryset = Booking.objects.all()
     serializer_class = BookingDetailSerializer
     lookup_field = 'id'
+    lookup_url_kwarg = 'id' 
 

@@ -4,5 +4,5 @@ from .views import BookingInitiateView, BookingRetrieveView
 
 urlpatterns = [
     path('initiate/', BookingInitiateView.as_view(), name='booking-initiate'),
-    path('<int:pk>/', BookingRetrieveView.as_view(), name='booking-detail'),  # ← this is what your React needs
+    path("<int:id>/", BookingRetrieveView.as_view(), name="booking-detail")  # ✅ فقط <int:id> بدون 'bookings/'
 ]

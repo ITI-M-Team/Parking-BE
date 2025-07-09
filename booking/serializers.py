@@ -1,5 +1,3 @@
-# booking/serializers.py
-
 from rest_framework import serializers
 from garage.models import ParkingSpot, Garage
 from booking.models import Booking
@@ -9,7 +7,6 @@ from django.contrib.auth import get_user_model
 from garage.serializers import GarageSerializer, ParkingSpotSerializer
 
 User = get_user_model()
-
 
 class BookingInitiationSerializer(serializers.Serializer):
     garage_id = serializers.IntegerField()
@@ -48,21 +45,31 @@ class BookingInitiationSerializer(serializers.Serializer):
         if overlapping_booking:
             raise serializers.ValidationError("You already have a booking during this time window.")
 
-        # Attach validated objects to data
         data['garage'] = garage
         data['spot'] = spot
         return data
 
-
 class BookingDetailSerializer(serializers.ModelSerializer):
-    garage_name = serializers.CharField(source='garage.name', read_only=True)
-    spot_id = serializers.IntegerField(source='parking_spot.id', read_only=True)
+    garage = serializers.SerializerMethodField()
+    parking_spot = serializers.SerializerMethodField()
 
     class Meta:
         model = Booking
         fields = [
-            'id', 'garage_name', 'spot_id',
+            'id', 'garage', 'parking_spot',
             'estimated_arrival_time',
             'reservation_expiry_time', 'status',
             'qr_code_image'
         ]
+
+    def get_garage(self, obj):
+        return {
+            "id": obj.garage.id,
+            "name": obj.garage.name
+        }
+
+    def get_parking_spot(self, obj):
+        return {
+            "id": obj.parking_spot.id,
+            "slot_number": obj.parking_spot.slot_number
+        }
