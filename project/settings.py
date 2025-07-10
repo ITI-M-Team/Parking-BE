@@ -126,6 +126,9 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 
 USE_TZ = True
+TIME_ZONE = 'Africa/Cairo'
+USE_TZ = True  # لو False، مش هيحول UTC خالص
+
 
 
 # Static files (CSS, JavaScript, Images)

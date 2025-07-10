@@ -1,7 +1,12 @@
 from rest_framework import serializers
-from .models import Booking
-from garage.models import Garage, ParkingSpot
+from garage.models import ParkingSpot, Garage
+from booking.models import Booking
+from django.utils import timezone
+from datetime import timedelta
+from django.contrib.auth import get_user_model
+from garage.serializers import GarageSerializer, ParkingSpotSerializer
 
+User = get_user_model()
 
 class BookingInitiationSerializer(serializers.Serializer):
     garage_id = serializers.IntegerField()
@@ -11,6 +16,7 @@ class BookingInitiationSerializer(serializers.Serializer):
     def validate(self, data):
         garage_id = data.get('garage_id')
         spot_id = data.get('parking_spot_id')
+        estimated_time = data.get('estimated_arrival_time')  # ✅ مهم علشان تستخدمه تحت
 
         try:
             garage = Garage.objects.get(id=garage_id)
@@ -25,8 +31,23 @@ class BookingInitiationSerializer(serializers.Serializer):
         if spot.status != 'available':
             raise serializers.ValidationError({"parking_spot_id": "This parking spot is not available."})
 
-        self.garage = garage
-        self.spot = spot
+        dummy_user = User.objects.first()
+        grace_period = garage.reservation_grace_period
+        expiry_time = estimated_time + timedelta(minutes=grace_period)
+
+        overlapping_booking = Booking.objects.filter(
+            driver=dummy_user,
+            status__in=["pending", "confirmed"],
+            estimated_arrival_time__lt=expiry_time,
+            reservation_expiry_time__gt=estimated_time
+        ).exists()
+
+        if overlapping_booking:
+            raise serializers.ValidationError({"parking_spot_id": "This parking spot is not available."})
+
+        # ✅ أضفهم للـ validated_data علشان تقدر تستخدمهم في view
+        data['garage'] = garage
+        data['spot'] = spot
         return data
 
 
@@ -37,8 +58,20 @@ class BookingDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Booking
         fields = [
-            'id', 'garage_name', 'spot_id',
-            'estimated_arrival_time', 'estimated_cost',
+            'id', 'garage', 'parking_spot',
+            'estimated_arrival_time',
             'reservation_expiry_time', 'status',
             'qr_code_image'
         ]
+
+    def get_garage(self, obj):
+        return {
+            "id": obj.garage.id,
+            "name": obj.garage.name
+        }
+
+    def get_parking_spot(self, obj):
+        return {
+            "id": obj.parking_spot.id,
+            "slot_number": obj.parking_spot.slot_number
+        }

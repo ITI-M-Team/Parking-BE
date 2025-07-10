@@ -1,6 +1,6 @@
 from django.db import models
 from django.core.exceptions import ValidationError
-
+from django.db.models import Avg
 from accounts.models import CustomUser 
 class Garage(models.Model):
     ##############Mandatory to know garage owner ###################
@@ -28,13 +28,16 @@ class Garage(models.Model):
         if self.price_per_hour < 0:
             raise ValidationError({'price_per_hour': 'Hourly rate must be positive or zero.'})
         
-       
+    
+   
     def __str__(self):
         return self.name
 
 class GarageReview(models.Model):
     garage = models.ForeignKey(Garage, on_delete=models.CASCADE, related_name='reviews')
     rating = models.PositiveIntegerField()
+    def __str__(self):
+        return f"{self.garage.name} - {self.rating}"
 
 class ParkingSpot(models.Model):
     STATUS_CHOICES = [
@@ -45,3 +48,5 @@ class ParkingSpot(models.Model):
     garage = models.ForeignKey(Garage, on_delete=models.CASCADE, related_name='spots')
     slot_number = models.CharField(max_length=10)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='available')
+    def __str__(self):
+        return f"{self.garage.name} - Spot {self.slot_number}"

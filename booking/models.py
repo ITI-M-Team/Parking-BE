@@ -10,6 +10,7 @@ class Booking(models.Model):
         ('confirmed', 'Confirmed'),
         ('expired', 'Expired'),
         ('cancelled', 'Cancelled'),
+        ('awaiting_response', 'Awaiting Response'),
     ]
 
     driver = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
@@ -18,7 +19,7 @@ class Booking(models.Model):
     estimated_arrival_time = models.DateTimeField()
     estimated_cost = models.DecimalField(max_digits=6, decimal_places=2, default=0)
     reservation_expiry_time = models.DateTimeField()
-    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+    status = models.CharField(max_length=25, choices=STATUS_CHOICES, default='pending')
     created_at = models.DateTimeField(auto_now_add=True)
     
     qr_code_image = models.ImageField(
@@ -27,6 +28,13 @@ class Booking(models.Model):
         blank=True,
         validators=[FileExtensionValidator(allowed_extensions=['png'])]
     )
+    def save(self, *args, **kwargs):
+        if not self.reservation_expiry_time and self.estimated_arrival_time:
+            # Automatically set expiry time based on arrival + grace period
+            self.reservation_expiry_time = self.estimated_arrival_time + timedelta(
+                minutes=self.garage.reservation_grace_period
+            )
+        super().save(*args, **kwargs)
 
     def is_expired(self):
         return timezone.now() > self.reservation_expiry_time
