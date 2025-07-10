@@ -6,17 +6,19 @@ from garage.models import ParkingSpot
 @shared_task
 def send_expiry_warning(booking_id):
     try:
-        booking = Booking.objects.get(id=booking_id)
+        booking = Booking.objects.select_related("parking_spot").get(id=booking_id)
 
         if booking.status == "pending" and timezone.now() > booking.reservation_expiry_time:
+            # Expire booking
             booking.status = "expired"
-            booking.save()
+            booking.save(update_fields=["status"])
 
+            # Free the parking spot
             spot = booking.parking_spot
             spot.status = "available"
-            spot.save()
+            spot.save(update_fields=["status"])
 
-            print("🚨 Spot returned to available: User didn’t arrive on time.")
+            print(f"🚨 Spot {spot.id} is now available (booking {booking.id} expired).")
 
     except Booking.DoesNotExist:
         print(f"❌ Booking {booking_id} not found.")

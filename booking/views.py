@@ -16,6 +16,7 @@ User = get_user_model()
 
 
 class BookingInitiateView(APIView):
+    permission_classes = [IsAuthenticated]
     def post(self, request):
         serializer = BookingInitiationSerializer(data=request.data)
         if serializer.is_valid():
@@ -23,14 +24,15 @@ class BookingInitiateView(APIView):
             spot = serializer.validated_data['spot']
             arrival_time = serializer.validated_data['estimated_arrival_time']
 
-            dummy_user = User.objects.first()
+            user = request.user
+
 
             # Save booking - expiry time handled by model's save()
             spot.status = 'reserved'
             spot.save()
 
             booking = Booking.objects.create(
-                driver=dummy_user,
+                driver=user,
                 garage=garage,
                 parking_spot=spot,
                 estimated_arrival_time=arrival_time,

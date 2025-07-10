@@ -8,6 +8,7 @@ from garage.serializers import GarageSerializer, ParkingSpotSerializer
 
 User = get_user_model()
 
+
 class BookingInitiationSerializer(serializers.Serializer):
     garage_id = serializers.IntegerField()
     parking_spot_id = serializers.IntegerField()
@@ -16,7 +17,7 @@ class BookingInitiationSerializer(serializers.Serializer):
     def validate(self, data):
         garage_id = data.get('garage_id')
         spot_id = data.get('parking_spot_id')
-        estimated_time = data.get('estimated_arrival_time')  # ✅ مهم علشان تستخدمه تحت
+        estimated_time = data.get('estimated_arrival_time')
 
         try:
             garage = Garage.objects.get(id=garage_id)
@@ -45,7 +46,6 @@ class BookingInitiationSerializer(serializers.Serializer):
         if overlapping_booking:
             raise serializers.ValidationError({"parking_spot_id": "This parking spot is not available."})
 
-        # ✅ أضفهم للـ validated_data علشان تقدر تستخدمهم في view
         data['garage'] = garage
         data['spot'] = spot
         return data
@@ -58,20 +58,13 @@ class BookingDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Booking
         fields = [
-            'id', 'garage', 'parking_spot',
+            'id',
+            'garage',
+            'garage_name',
+            'parking_spot',
+            'spot_id',
             'estimated_arrival_time',
-            'reservation_expiry_time', 'status',
+            'reservation_expiry_time',
+            'status',
             'qr_code_image'
         ]
-
-    def get_garage(self, obj):
-        return {
-            "id": obj.garage.id,
-            "name": obj.garage.name
-        }
-
-    def get_parking_spot(self, obj):
-        return {
-            "id": obj.parking_spot.id,
-            "slot_number": obj.parking_spot.slot_number
-        }

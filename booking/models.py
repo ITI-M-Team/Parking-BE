@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils import timezone
+from datetime import timedelta
 from accounts.models import CustomUser
 from garage.models import ParkingSpot, Garage
 from django.core.validators import FileExtensionValidator
