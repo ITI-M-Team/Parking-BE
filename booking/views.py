@@ -17,7 +17,6 @@ from .utils import generate_qr_code_for_booking, send_booking_confirmation_email
 logger = logging.getLogger(__name__)
 User = get_user_model()
 
-
 class BookingInitiateView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -78,7 +77,7 @@ class BookingInitiateView(APIView):
                 # Generate QR code
                 generate_qr_code_for_booking(booking)
 
-                # ✅ Send confirmation email
+                # Send confirmation email
                 send_booking_confirmation_email(booking)
 
                 # Schedule expiry notifications
@@ -86,7 +85,6 @@ class BookingInitiateView(APIView):
                 if grace_period > 5:
                     notify_before_expiry.apply_async((booking.id,), countdown=(grace_period - 5) * 60)
 
-                # Return response
                 return Response({
                     "booking_id": booking.id,
                     "estimated_cost": float(estimated_cost),
@@ -96,13 +94,13 @@ class BookingInitiateView(APIView):
                     "status": "success"
                 }, status=status.HTTP_201_CREATED)
 
-            logger.warning("❌ Serializer Errors: %s", serializer.errors)
+            logger.warning("Serializer errors: %s", serializer.errors)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         except Exception as e:
-            logger.exception("🚨 Full booking exception:")
+            logger.exception("Error during booking:")
             return Response(
-                {"error": "🚨 Error during booking. Please try again later."},
+                {"error": "Error during booking. Please try again later."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 

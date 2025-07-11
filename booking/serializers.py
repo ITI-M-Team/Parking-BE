@@ -4,6 +4,7 @@ from booking.models import Booking
 from django.utils import timezone
 from datetime import timedelta
 from django.contrib.auth import get_user_model
+from garage.serializers import GarageSerializer, ParkingSpotSerializer
 
 User = get_user_model()
 
@@ -68,7 +69,9 @@ class BookingDetailSerializer(serializers.ModelSerializer):
         model = Booking
         fields = [
             'id',
+            'garage',
             'garage_name',
+            'parking_spot',
             'spot_id',
             'estimated_arrival_time',
             'estimated_cost',
