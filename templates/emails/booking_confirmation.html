@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Booking Confirmation</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f7f7f7;
+      padding: 20px;
+      color: #333;
+    }
+    .container {
+      background-color: #fff;
+      border-radius: 6px;
+      padding: 20px;
+      max-width: 600px;
+      margin: auto;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    .qr {
+      text-align: center;
+      margin-top: 20px;
+    }
+    .qr img {
+      width: 200px;
+      height: 200px;
+      object-fit: contain;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>✅ Booking Confirmed!</h2>
+    <p>Hello {{ booking.driver.first_name }},</p>
+    <p>Your booking has been successfully confirmed. Below are your booking details:</p>
+
+    <ul>
+      <li><strong>Garage:</strong> {{ booking.garage.name }}</li>
+      <li><strong>Parking Spot ID:</strong> {{ booking.parking_spot.id }}</li>
+      <li><strong>Estimated Arrival:</strong> {{ booking.estimated_arrival_time }}</li>
+      <li><strong>Expires At:</strong> {{ booking.reservation_expiry_time }}</li>
+      <li><strong>Estimated Cost:</strong> {{ booking.estimated_cost }} EGP</li>
+    </ul>
+
+    <div class="qr">
+      <p><strong>Scan this QR code upon arrival:</strong></p>
+      <img src="{{ qr_code_url }}" alt="QR Code">
+    </div>
+
+    <p>Thank you for using our Parking System 🚗</p>
+  </div>
+</body>
+</html>

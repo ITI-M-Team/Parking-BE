@@ -69,13 +69,21 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         unique=True,
         blank=False,
         null=False,
-        verbose_name="Username"
+        verbose_name="Username",
     )
+    first_name = models.CharField(max_length=150, blank=True)
+    last_name = models.CharField(max_length=150, blank=True)
+
+
+    
     email = models.EmailField(_('email address'), unique=True)
     driver_license = models.FileField(upload_to='documents/driver/', blank=True, null=True)
     car_license = models.FileField(upload_to='documents/car/', blank=True, null=True)
     national_id_img = models.FileField(upload_to='documents/national_id/', blank=True, null=True)
     profile_image = models.ImageField(upload_to='profile_images/',blank=True,null=True,verbose_name="Profile Image")
+
+    # Add a field to track wallet balance
+    wallet_balance = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
 
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
@@ -211,3 +219,4 @@ class VerificationRequest(models.Model):
     
     def __str__(self):
         return f"Verification Request for {self.user.email} - {self.status}"
+    
