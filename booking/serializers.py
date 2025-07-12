@@ -64,6 +64,12 @@ class BookingDetailSerializer(serializers.ModelSerializer):
     garage_name = serializers.CharField(source='garage.name', read_only=True)
     spot_id = serializers.IntegerField(source='parking_spot.id', read_only=True)
     wallet_balance = serializers.SerializerMethodField()
+    parking_spot = serializers.CharField(source='parking_spot.slot_number', read_only=True)
+    price_per_hour = serializers.DecimalField(source='garage.price_per_hour', max_digits=6, decimal_places=2, read_only=True)
+    actual_cost = serializers.DecimalField(max_digits=6, decimal_places=2, read_only=True, allow_null=True, required=False)
+    start_time = serializers.DateTimeField(read_only=True, allow_null=True, required=False)
+    end_time = serializers.DateTimeField(read_only=True, allow_null=True, required=False)
+    total_duration_minutes = serializers.SerializerMethodField()
 
     class Meta:
         model = Booking
@@ -78,8 +84,24 @@ class BookingDetailSerializer(serializers.ModelSerializer):
             'reservation_expiry_time',
             'status',
             'qr_code_image',
-            'wallet_balance'
+            'wallet_balance',
+            'price_per_hour',
+            'start_time',
+            'end_time',
+            'actual_cost',
+            'total_duration_minutes'
         ]
 
     def get_wallet_balance(self, obj):
         return float(obj.driver.wallet_balance)
+    
+    def get_total_duration_minutes(self, obj):
+        if obj.start_time and obj.end_time:
+            delta = obj.end_time - obj.start_time
+            return int(delta.total_seconds() / 60)
+        return None
+        
+    def get_actual_cost(self, obj):
+        if obj.actual_cost is not None:
+            return round(obj.actual_cost, 2)
+        return None

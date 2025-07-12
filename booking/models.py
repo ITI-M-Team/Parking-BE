@@ -9,6 +9,7 @@ class Booking(models.Model):
     STATUS_CHOICES = [
         ('pending', 'Pending'),
         ('confirmed', 'Confirmed'),
+        ('completed', 'Completed'),
         ('expired', 'Expired'),
         ('cancelled', 'Cancelled'),
         ('awaiting_response', 'Awaiting Response'),
@@ -16,6 +17,8 @@ class Booking(models.Model):
 
     driver = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     garage = models.ForeignKey(Garage, on_delete=models.CASCADE)
+    start_time = models.DateTimeField(null=True, blank=True)
+    end_time = models.DateTimeField(null=True, blank=True)
     parking_spot = models.ForeignKey(ParkingSpot, on_delete=models.CASCADE)
     estimated_arrival_time = models.DateTimeField()
     estimated_cost = models.DecimalField(max_digits=6, decimal_places=2, default=0)
