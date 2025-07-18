@@ -14,6 +14,7 @@ urlpatterns = [
     path('admin/verification-requests/', VerificationRequestListView.as_view(), name='verification-requests'),
     path('admin/verification-requests/<int:request_id>/update/', update_verification_status, name='update-verification'),
     path('admin/verification-stats/', verification_stats, name='verification-stats'),
+    
 ]
 
 

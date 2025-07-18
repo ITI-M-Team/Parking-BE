@@ -12,7 +12,7 @@ def generate_qr_code_for_booking(booking):
         "id": booking.id,
         "garage_name": booking.garage.name,
         "spot_id": booking.parking_spot.id,
-        "estimated_arrival_time": booking.estimated_arrival_time.isoformat(),
+        "estimated_arrival_time": booking.estimated_arrival_time.isoformat() if booking.estimated_arrival_time else None,
         "reservation_expiry_time": booking.reservation_expiry_time.isoformat(),
         "estimated_cost": float(booking.estimated_cost),
         "status": booking.status,
