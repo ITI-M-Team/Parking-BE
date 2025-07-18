@@ -1,120 +1,149 @@
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.generics import RetrieveAPIView
-from django.utils import timezone
-from django.contrib.auth import get_user_model
 from datetime import timedelta
 import logging
 
-from .models import Booking
-from garage.models import ParkingSpot
-from .serializers import BookingInitiationSerializer, BookingDetailSerializer
-from .tasks import send_expiry_warning, notify_before_expiry
-from .utils import generate_qr_code_for_booking, send_booking_confirmation_email
+from django.utils import timezone
+from django.contrib.auth import get_user_model
+from rest_framework import status
+from rest_framework.views import APIView
+from rest_framework.generics import RetrieveAPIView
 from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+
+from booking.models import Booking
+from booking.serializers import BookingInitiationSerializer, BookingDetailSerializer
+from booking.tasks import expire_or_block_booking, notify_before_expiry
+from booking.utils import generate_qr_code_for_booking, send_booking_confirmation_email
+from garage.models import ParkingSpot
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
-
 class BookingInitiateView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        try:
-            serializer = BookingInitiationSerializer(data=request.data, context={'request': request})
-            if serializer.is_valid():
-                garage = serializer.validated_data['garage']
-                spot = serializer.validated_data['spot']
-                arrival_time = serializer.validated_data['estimated_arrival_time']
-                estimated_cost = serializer.validated_data['estimated_cost']
-                grace_period = serializer.validated_data['grace_period']
+        serializer = BookingInitiationSerializer(data=request.data, context={"request": request})
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
 
-                user = request.user
+        garage = serializer.validated_data["garage"]
+        spot = serializer.validated_data["spot"]
+        estimated_fee = serializer.validated_data["estimated_cost"]
+        grace = serializer.validated_data["grace_period"]
+        user = request.user
 
-                # Check for existing conflicting bookings
-                existing_booking = Booking.objects.filter(
-                    driver=user,
-                    status__in=["pending", "active"],
-                    reservation_expiry_time__gt=timezone.now()
-                ).first()
+        # Check if garage is open now
+        now = timezone.localtime().time()
+        opening = garage.opening_hour
+        closing = garage.closing_hour
 
-                if existing_booking:
-                    return Response(
-                        {"error": "Booking failed. You already have a conflicting booking."},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
-
-                # Check for wallet balance
-                if user.wallet_balance < estimated_cost:
-                    return Response(
-                        {"error": "Insufficient wallet balance"},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
-
-                # Reserve the spot
-                spot.status = 'reserved'
-                spot.save()
-
-                # Deduct amount from wallet
-                user.wallet_balance -= estimated_cost
-                user.save()
-
-                # Calculate expiry time
-                expiry_time = arrival_time + timedelta(minutes=grace_period)
-
-                # Create booking
-                booking = Booking.objects.create(
-                    driver=user,
-                    garage=garage,
-                    parking_spot=spot,
-                    estimated_arrival_time=arrival_time,
-                    estimated_cost=estimated_cost,
-                    reservation_expiry_time=expiry_time,
-                    status='pending'
-                )
-
-                # Generate QR code
-                generate_qr_code_for_booking(booking)
-
-                # Send confirmation email
-                send_booking_confirmation_email(booking)
-
-                # Schedule expiry notifications
-                send_expiry_warning.apply_async((booking.id,), countdown=grace_period * 60)
-                if grace_period > 5:
-                    notify_before_expiry.apply_async((booking.id,), countdown=(grace_period - 5) * 60)
-
+        if opening < closing:
+            # Normal case: open and close on the same day
+            if not (opening <= now <= closing):
                 return Response({
-                    "booking_id": booking.id,
-                    "estimated_cost": float(estimated_cost),
-                    "reservation_expiry_time": booking.reservation_expiry_time.isoformat(),
-                    "qr_code_url": booking.qr_code_image.url if booking.qr_code_image else None,
-                    "wallet_balance": float(user.wallet_balance),
-                    "status": "success"
-                }, status=status.HTTP_201_CREATED)
+                    "error": f"الجراج مغلق حاليًا. ساعات العمل من {opening.strftime('%H:%M')} إلى {closing.strftime('%H:%M')}."
+                }, status=400)
+        else:
+            # Overnight case: e.g. opening at 20:00, closing at 06:00 next day
+            if not (now >= opening or now <= closing):
+                return Response({
+                    "error": f"الجراج مغلق حاليًا. ساعات العمل من {opening.strftime('%H:%M')} إلى {closing.strftime('%H:%M')}."
+                }, status=400)
 
-            logger.warning("Serializer errors: %s", serializer.errors)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        # Blocked user
+        if user.blocked_until and user.blocked_until > timezone.now():
+            return Response({"error": f"لا يمكنك الحجز قبل {user.blocked_until}"}, status=403)
 
-        except Exception as e:
-            logger.exception("Error during booking:")
-            return Response(
-                {"error": "Error during booking. Please try again later."},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        # Check if user already has any active booking
+        if Booking.objects.filter(
+            driver=user,
+            status__in=["pending", "confirmed", "confirmed_late", "awaiting_response"],
+            reservation_expiry_time__gt=timezone.now(),
+        ).exists():
+            return Response({"error": "لديك حجز قائم بالفعل."}, status=400)
 
+        # Check if the user already booked this spot
+        if Booking.objects.filter(
+            driver=user,
+            parking_spot=spot,
+            status__in=["pending", "confirmed", "confirmed_late", "awaiting_response"],
+            reservation_expiry_time__gt=timezone.now(),
+        ).exists():
+            return Response({"error": "لقد قمت بالفعل بحجز هذا المكان مسبقًا."}, status=400)
+
+        # Check wallet balance
+        if user.wallet_balance < estimated_fee:
+            return Response({"error": "رصيد المحفظة غير كافٍ."}, status=400)
+
+        # Reserve the spot
+        spot.status = "reserved"
+        spot.save()
+
+        # Deduct wallet
+        user.wallet_balance -= estimated_fee
+        user.save(update_fields=["wallet_balance"])
+
+        # Create booking
+        now = timezone.now()
+        expiry = now + timedelta(minutes=grace)
+
+        booking = Booking.objects.create(
+            driver=user,
+            garage=garage,
+            parking_spot=spot,
+            estimated_cost=estimated_fee,
+            reservation_expiry_time=expiry,
+            status="pending",
+        )
+
+        # Generate QR and send email
+        generate_qr_code_for_booking(booking)
+        send_booking_confirmation_email(booking)
+
+        # Schedule background tasks
+        notify_before_expiry.apply_async((booking.id,), eta=booking.reservation_expiry_time)
+        expire_or_block_booking.apply_async(
+            (booking.id,), eta=booking.reservation_expiry_time + timedelta(minutes=1)
+        )
+
+        return Response({
+            "booking_id": booking.id,
+            "estimated_cost": float(estimated_fee),
+            "reservation_expiry_time": booking.reservation_expiry_time.isoformat(),
+            "qr_code_url": booking.qr_code_image.url if booking.qr_code_image else None,
+            "wallet_balance": float(user.wallet_balance),
+        }, status=201)
 
 class BookingDetailView(RetrieveAPIView):
     queryset = Booking.objects.all()
     serializer_class = BookingDetailSerializer
-    lookup_field = 'id'
-    lookup_url_kwarg = 'id'
+    lookup_field = "id"
+    lookup_url_kwarg = "id"
 
 
+class ActiveBookingView(APIView):
+    permission_classes = [IsAuthenticated]
 
-# =====================================================
+    def get(self, request):
+        now = timezone.now()
+        booking = Booking.objects.filter(driver=request.user).exclude(
+            status__in=["cancelled", "expired", "completed"]
+        ).order_by("-created_at").first()
+
+        if booking:
+            return Response(BookingDetailSerializer(booking).data)
+
+        recent = Booking.objects.filter(
+            driver=request.user, status="completed", end_time__gte=now - timedelta(seconds=30)
+        ).order_by("-end_time").first()
+
+        if recent:
+            data = BookingDetailSerializer(recent).data
+            data["exit_summary"] = True
+            return Response(data)
+
+        return Response({"detail": "No active bookings."}, status=404)
+
 
 class CancelBookingView(APIView):
     permission_classes = [IsAuthenticated]
@@ -125,99 +154,126 @@ class CancelBookingView(APIView):
         except Booking.DoesNotExist:
             return Response({"error": "Booking not found."}, status=404)
 
-        if booking.status != 'pending':
-            return Response({"error": "Only pending bookings can be cancelled."}, status=400)
+        if booking.status != "pending":
+            return Response({"error": "Can cancel only pending bookings."}, status=400)
 
         if timezone.now() > booking.reservation_expiry_time:
-            return Response({"error": "Cannot cancel booking after grace period ends."}, status=400)
+            return Response({"error": "Grace‑period ended."}, status=400)
 
-        booking.status = 'cancelled'
-        booking.save()
+        booking.status = "cancelled"
+        booking.save(update_fields=["status"])
 
         spot = booking.parking_spot
-        spot.status = 'available'
-        spot.save()
+        spot.status = "available"
+        spot.save(update_fields=["status"])
 
-        return Response({"success": "Booking cancelled and spot is now available."}, status=200)
+        return Response({"success": "Booking cancelled."})
 
 
-class ActiveBookingView(APIView):
+class BookingLateDecisionView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request):
+    def post(self, request, id):
+        try:
+            booking = Booking.objects.get(id=id, driver=request.user)
+        except Booking.DoesNotExist:
+            return Response({"error": "Booking not found."}, status=404)
+
+        if booking.status != "awaiting_response":
+            return Response({"error": "Action not allowed in current booking state."}, status=400)
+
+        action = request.data.get("action")
         now = timezone.now()
 
-        active_booking = Booking.objects.filter(
-            driver=request.user
-        ).exclude(status__in=['cancelled', 'expired']).order_by('-created_at').first()
+        if action == "confirm":
+            booking.status = "confirmed_late"
+            booking.confirmed_late_at = now
+            booking.confirmation_time = now
+            booking.reservation_expiry_time = now
+            booking.late_alert_sent = True
+            booking.save(update_fields=[
+                "status", "confirmed_late_at", "reservation_expiry_time", "late_alert_sent", "confirmation_time"
+            ])
+
+            logger.info(
+                f"User {request.user.id} CONFIRMED late booking {booking.id} at {now.isoformat()}"
+            )
+
+            return Response({
+                "success": "Booking confirmed (late confirmation).",
+                "confirmation_time": booking.confirmation_time.isoformat()
+            })
+
+        elif action == "cancel":
+            expire_or_block_booking.apply_async((booking.id,), countdown=1)
+
+            logger.info(
+                f"User {request.user.id} CANCELLED late booking {booking.id} at {now.isoformat()}"
+            )
+
+            return Response({
+                "success": "Booking cancellation in progress."
+            })
+
+        return Response({
+            "error": "Invalid action. Must be either 'confirm' or 'cancel'."
+        }, status=400)
 
 
-
-        if active_booking:
-            serializer = BookingDetailSerializer(active_booking)
-            return Response(serializer.data, status=200)
-
-       
-        recent_completed = Booking.objects.filter(
-            driver=request.user,
-            status='completed',
-            end_time__gte=now - timedelta(seconds=30)  
-        ).order_by('-end_time').first()
-
-        if recent_completed:
-            serializer = BookingDetailSerializer(recent_completed)
-            return Response({"exit_summary": True, **serializer.data}, status=200)
-
-        return Response({"detail": "No active bookings found."}, status=404)
-
-@api_view(['POST'])
+@api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def scan_qr_code(request):
     booking_id = request.data.get("booking_id")
-
     try:
-        booking = Booking.objects.get(id=booking_id)
+        booking = Booking.objects.select_related("parking_spot", "garage").get(id=booking_id, driver=request.user)
     except Booking.DoesNotExist:
-        return Response({"error": "Booking not found."}, status=404)
+        return Response({"error": "Invalid QR."}, status=404)
 
-    if booking.status == 'pending':
-        booking.status = 'confirmed'
-        booking.start_time = timezone.now()
-        booking.save()
+    now = timezone.now()
+
+    if booking.status in ("pending", "confirmed_late"):
+        if booking.start_time is None:
+            booking.status = "confirmed"
+            booking.start_time = now
+            if not booking.confirmation_time:
+                booking.confirmation_time = now
+            if booking.confirmed_late_at:
+                booking.waiting_time = now - booking.confirmed_late_at
+            else:
+                booking.waiting_time = now - booking.created_at
+
+            booking.save(update_fields=["status", "start_time", "waiting_time", "confirmation_time"])
+
         return Response({
-            "message": "Entry recorded", 
+            "message": "Entry recorded",
+            "action": "entry",
             "start_time": booking.start_time,
-            "action": "entry"
-        }, status=200)
+            "stop_timer": True
+        })
 
-    elif booking.status == 'confirmed':
-        booking.status = 'completed'
-        booking.end_time = timezone.now()
-        
-        total_duration = booking.end_time - booking.start_time
-        total_hours = total_duration.total_seconds() / 3600
-        
-        actual_cost = total_hours * float(booking.garage.price_per_hour)
-        booking.actual_cost = actual_cost
-        
-        booking.save()
-        
+    if booking.status == "confirmed":
+        booking.status = "completed"
+        booking.end_time = now
+
+        duration = booking.total_parking_time()
+        hours = duration.total_seconds() / 3600
+        booking.actual_cost = hours * float(booking.garage.price_per_hour)
+        booking.save(update_fields=["status", "end_time", "actual_cost"])
+
         spot = booking.parking_spot
-        spot.status = 'available'
-        spot.save()
-        
+        spot.status = "available"
+        spot.save(update_fields=["status"])
+
         return Response({
             "message": "Exit recorded",
             "action": "exit",
             "start_time": booking.start_time,
             "end_time": booking.end_time,
-            "total_duration_minutes": int(total_duration.total_seconds() / 60),
-            "total_hours": round(total_hours, 2),
-            "actual_cost": round(actual_cost, 2),
-            "garage_name": booking.garage.name,
-            "spot_id": booking.parking_spot.slot_number,
-            "exit_summary": True
-        }, status=200)
+            "waiting_time_minutes": int(booking.waiting_time.total_seconds() / 60) if booking.waiting_time else 0,
+            "garage_time_minutes": int(booking.garage_time.total_seconds() / 60) if booking.garage_time else 0,
+            "total_duration_minutes": int(duration.total_seconds() / 60),
+            "actual_cost": round(booking.actual_cost, 2),
+            "exit_summary": True,
+        })
 
-    return Response({"error": "Invalid booking state for scanning."}, status=400)
-# =====================================================
+    return Response({"error": "Invalid QR state."}, status=400)

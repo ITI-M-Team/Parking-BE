@@ -19,6 +19,13 @@ class Garage(models.Model):
         help_text="مدة الحجز المؤقت بالدقائق قبل إلغائه تلقائيًا"
     )
 
+    #   جديد: عدد الساعات التي يُحظر فيها السائق لو ألغى بعد انتهاء المهلة
+    block_duration_hours = models.PositiveIntegerField(
+        default=3,
+        help_text="عدد ساعات الحظر عند الإلغاء المتأخر"
+    )
+
+
 
     def clean(self):
         if not (22 <= self.latitude <= 32):

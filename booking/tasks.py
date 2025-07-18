@@ -1,76 +1,106 @@
+from datetime import timedelta
 from celery import shared_task
 from django.utils import timezone
 from django.core.mail import send_mail
-from .models import Booking
-from garage.models import ParkingSpot
+
+from booking.models import Booking
 
 
 @shared_task
-def notify_before_expiry(booking_id):
+def notify_before_expiry(booking_id: int) -> None:
     try:
-        booking = Booking.objects.get(id=booking_id)
+        booking = (
+            Booking.objects
+            .select_related("driver", "garage")
+            .get(id=booking_id)
+        )
 
-        if booking.status == "pending":
+        # لو خلاص عمل confirm_late مايبعتش الرسالة
+        if (
+            booking.status == "pending"
+            and not booking.late_alert_sent
+            and booking.confirmed_late_at is None
+            and timezone.now() >= booking.reservation_expiry_time
+        ):
             user = booking.driver
             garage_name = booking.garage.name
-            expiry_time = booking.reservation_expiry_time.strftime('%Y-%m-%d %H:%M')
 
-            subject = "⚠️ Reminder: Your Reservation Will Expire in 5 Minutes"
-            message = (
-                f"Hi {user.first_name},\n\n"
-                f"Just a reminder: your reservation at '{garage_name}' will expire at {expiry_time}.\n"
-                f"Please make sure to arrive before that time.\n\n"
-                f"Thank you,\nParking System"
+            subject = "⏰ انتهت مهلة الحجز – الرجاء الاختيار"
+            body = (
+                f"مرحبًا {user.first_name},\n\n"
+                f"انتهت مهلة حجزك فى **{garage_name}**.\n"
+                f"يمكنك الآن:\n"
+                f"• الضغط على (تأكيد) لإكمال الحجز والدفع، أو\n"
+                f"• الضغط على (إلغاء) وسيُفرض حظر مؤقَّت.\n\n"
+                f"نظام الـParking"
             )
 
             send_mail(
-                subject=subject,
-                message=message,
-                from_email="Parking System <appparking653@gmail.com>",
-                recipient_list=[user.email],
-                fail_silently=False,
+                subject,
+                body,
+                "Parking System <noreply@parking.com>",
+                [user.email],
+                fail_silently=True,
             )
 
-            print("🔔 [Reminder] 5 minutes before expiry sent.")
+            booking.late_alert_sent = True
+            booking.status = "awaiting_response"
+            booking.save(update_fields=["late_alert_sent", "status"])
+
+            print(
+                f"[notify_before_expiry] booking {booking_id} → awaiting_response; mail sent to {user.email}"
+            )
 
     except Booking.DoesNotExist:
-        print(f"❌ Booking with ID {booking_id} not found.")
+        print(f"[notify_before_expiry] booking {booking_id} not found")
 
 
 @shared_task
-def send_expiry_warning(booking_id):
+def expire_or_block_booking(booking_id: int) -> None:
     try:
-        booking = Booking.objects.select_related("parking_spot").get(id=booking_id)
+        booking = (
+            Booking.objects
+            .select_related("parking_spot", "driver", "garage")
+            .get(id=booking_id)
+        )
+        now = timezone.now()
 
-        if booking.status == "pending" and timezone.now() > booking.reservation_expiry_time:
-            # Expire booking
-            booking.status = "expired"
-            booking.save(update_fields=["status"])
+        if booking.status in ("confirmed", "confirmed_late", "completed", "awaiting_payment"):
+            return
 
-            # Free the parking spot
-            spot = booking.parking_spot
-            spot.status = "available"
-            spot.save(update_fields=["status"])
+        if now < booking.reservation_expiry_time:
+            return
 
-            # Notify user by email
-            user = booking.driver
-            subject = "❌ Your Reservation Has Expired"
-            message = (
-                f"Hi {user.first_name},\n\n"
-                f"Your reservation at '{booking.garage.name}' has expired.\n"
-                f"The reserved parking spot has been released.\n\n"
-                f"Thank you,\nParking System"
-            )
+        booking.status = "expired"
+        booking.save(update_fields=["status"])
 
-            send_mail(
-                subject=subject,
-                message=message,
-                from_email="Parking System <appparking653@gmail.com>",
-                recipient_list=[user.email],
-                fail_silently=False,
-            )
+        spot = booking.parking_spot
+        spot.status = "available"
+        spot.save(update_fields=["status"])
 
-            print("⛔️ [Expired] Email sent and spot released.")
+        driver = booking.driver
+        block_hours = getattr(booking.garage, "block_duration_hours", 3) or 1
+        driver.blocked_until = now + timedelta(hours=block_hours)
+        driver.save(update_fields=["blocked_until"])
+
+        subject = "تم إلغاء الحجز ‑ حظر مؤقت"
+        body = (
+            f"مرحبًا {driver.first_name},\n\n"
+            f"تم إلغاء حجزك فى {booking.garage.name} لعدم التأكيد.\n"
+            f"تم حظرك من إنشاء حجوزات جديدة لمدة {block_hours} ساعة.\n\n"
+            f"نظام الـParking"
+        )
+        send_mail(
+            subject,
+            body,
+            "Parking System <noreply@parking.com>",
+            [driver.email],
+            fail_silently=True,
+        )
+
+        print(
+            f"[expire_or_block_booking] booking {booking_id} expired, spot {spot.id} freed, user {driver.email} blocked for {block_hours} h"
+        )
 
     except Booking.DoesNotExist:
-        print(f"❌ Booking with ID {booking_id} not found.")
+        print(f"[expire_or_block_booking] booking {booking_id} not found")
