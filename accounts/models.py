@@ -81,6 +81,10 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     car_license = models.FileField(upload_to='documents/car/', blank=True, null=True)
     national_id_img = models.FileField(upload_to='documents/national_id/', blank=True, null=True)
     profile_image = models.ImageField(upload_to='profile_images/',blank=True,null=True,verbose_name="Profile Image")
+    blocked_until = models.DateTimeField(null=True, blank=True)
+
+
+
 
     # Add a field to track wallet balance
     wallet_balance = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)

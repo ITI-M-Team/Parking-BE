@@ -12,7 +12,7 @@ class GarageDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Garage
         fields = ['id', 'name', 'address', 'latitude', 'longitude',
-                  'opening_hour', 'closing_hour', 'average_rating','image', 'price_per_hour']
+                  'opening_hour', 'closing_hour', 'average_rating','image', 'price_per_hour','block_duration_hours']
 
     def get_image_url(self, obj):
         request = self.context.get('request')
@@ -58,7 +58,7 @@ class GarageRegistrationSerializer(serializers.ModelSerializer):
         fields = [
             'name', 'address', 'latitude', 'longitude',
             'opening_hour', 'closing_hour', 'image',
-            'price_per_hour', 'number_of_spots'
+            'price_per_hour', 'number_of_spots','block_duration_hours'
         ]
 
     def validate_number_of_spots(self, value):
@@ -94,7 +94,7 @@ class GarageUpdateSerializer(serializers.ModelSerializer):
             'name', 'address', 'latitude', 'longitude',
             'opening_hour', 'closing_hour', 'image',
             'price_per_hour', 'reservation_grace_period',
-            'number_of_spots',
+            'number_of_spots','block_duration_hours',
         ]
 
     def update(self, instance, validated_data):
