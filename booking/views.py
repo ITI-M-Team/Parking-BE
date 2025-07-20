@@ -51,8 +51,8 @@ class BookingInitiateView(APIView):
                 }, status=400)
 
         # Blocked user
-        if user.blocked_until and user.blocked_until > timezone.now():
-            return Response({"error": f"لا يمكنك الحجز قبل {user.blocked_until}"}, status=403)
+        # if user.blocked_until and user.blocked_until > timezone.now():
+        #     return Response({"error": f"لا يمكنك الحجز قبل {user.blocked_until}"}, status=403)
 
         # Check if user already has any active booking
         if Booking.objects.filter(
@@ -153,12 +153,16 @@ class CancelBookingView(APIView):
             booking = Booking.objects.get(id=booking_id, driver=request.user)
         except Booking.DoesNotExist:
             return Response({"error": "Booking not found."}, status=404)
-
+        # Debug ## 
+        print("DEBUG: Booking Status =", booking.status)
+        print("DEBUG: Expiry Time =", booking.reservation_expiry_time)
+        print("DEBUG: Now =", timezone.now())
+        # ##
         if booking.status != "pending":
             return Response({"error": "Can cancel only pending bookings."}, status=400)
-
-        if timezone.now() > booking.reservation_expiry_time:
-            return Response({"error": "Grace‑period ended."}, status=400)
+##this part for expired bookings (cann't bokk new until i have un experied booking so comment this part temporarily)
+        # if timezone.now() > booking.reservation_expiry_time:
+        #     return Response({"error": "Grace‑period ended."}, status=400)
 
         booking.status = "cancelled"
         booking.save(update_fields=["status"])
@@ -220,19 +224,130 @@ class BookingLateDecisionView(APIView):
         }, status=400)
 
 
+# @api_view(["POST"])
+# @permission_classes([IsAuthenticated])
+# def scan_qr_code(request):
+#     booking_id = request.data.get("booking_id")
+#     logger.info(f"QR scan request from user {request.user.id} for booking {booking_id}")
+#      # Validate booking_id is provided
+#     if not booking_id:
+#         return Response({"error": "Missing booking_id in request."}, status=400)
+    
+#     # Validate booking_id is an integer
+#     try:
+#         booking_id = int(booking_id)
+#     except (ValueError, TypeError):
+#         return Response({"error": "Invalid booking ID format. Expected a number."}, status=400)
+    
+    
+#     try:
+#         booking = Booking.objects.select_related("parking_spot", "garage").get(id=booking_id, driver=request.user)
+#     except Booking.DoesNotExist:
+#         return Response({"error": "Invalid QR."}, status=404)
+
+#     now = timezone.now()
+#     # Handle entry (pending or confirmed_late status)
+#     if booking.status in ("pending", "confirmed_late"):
+#         if booking.start_time is None:
+#             booking.status = "confirmed"
+#             booking.start_time = now
+#             if not booking.confirmation_time:
+#                 booking.confirmation_time = now
+#             if booking.confirmed_late_at:
+#                 booking.waiting_time = now - booking.confirmed_late_at
+#             else:
+#                 booking.waiting_time = now - booking.created_at
+
+#             booking.save(update_fields=["status", "start_time", "waiting_time", "confirmation_time"])
+
+#         return Response({
+#             "message": "Entry recorded",
+#             "action": "entry",
+#             "start_time": booking.start_time,
+#             "stop_timer": True
+#         })
+#     # Handle exit (confirmed status)
+#     if booking.status == "confirmed":
+#         booking.status = "completed"
+#         booking.end_time = now
+
+#         duration = booking.total_parking_time()
+#         if duration:
+#             hours = duration.total_seconds() / 3600
+#             booking.actual_cost = hours * float(booking.garage.price_per_hour)
+#         else:
+#             booking.actual_cost = 0
+#         # hours = duration.total_seconds() / 3600
+#         # booking.actual_cost = hours * float(booking.garage.price_per_hour)
+#         booking.save(update_fields=["status", "end_time", "actual_cost"])
+
+#         spot = booking.parking_spot
+#         spot.status = "available"
+#         spot.save(update_fields=["status"])
+
+#         return Response({
+#             "message": "Exit recorded",
+#             "action": "exit",
+#             "start_time": booking.start_time,
+#             "end_time": booking.end_time,
+#             "waiting_time_minutes": int(booking.waiting_time.total_seconds() / 60) if booking.waiting_time else 0,
+#             "garage_time_minutes": int(booking.garage_time.total_seconds() / 60) if booking.garage_time else 0,
+#             "total_duration_minutes": int(duration.total_seconds() / 60),
+#             "actual_cost": round(booking.actual_cost, 2),
+#             "exit_summary": True,
+#         })
+
+#     # Invalid state for QR scanning
+#     return Response({
+#         "error": f"Cannot scan QR for booking with status '{booking.status}'. Expected 'pending', 'confirmed_late', or 'confirmed'."
+#     }, status=400)
+################ New scan_qr_code ############3
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def scan_qr_code(request):
     booking_id = request.data.get("booking_id")
+    
+    # Enhanced logging
+    logger.info(f"QR scan request from user {request.user.id} for booking {booking_id}")
+    
+    # Validate booking_id is provided
+    if not booking_id:
+        logger.error("QR scan failed: Missing booking_id in request")
+        return Response({"error": "Missing booking_id in request."}, status=400)
+    
+    # Validate booking_id is an integer
     try:
-        booking = Booking.objects.select_related("parking_spot", "garage").get(id=booking_id, driver=request.user)
+        booking_id = int(booking_id)
+    except (ValueError, TypeError):
+        logger.error(f"QR scan failed: Invalid booking ID format: {booking_id}")
+        return Response({"error": "Invalid booking ID format. Expected a number."}, status=400)
+    
+    try:
+        booking = Booking.objects.select_related("parking_spot", "garage").get(id=booking_id)
     except Booking.DoesNotExist:
-        return Response({"error": "Invalid QR."}, status=404)
-
+        logger.error(f"Booking {booking_id} doesn't exist in DB")
+        return Response({"error": "QR code is invalid - booking not found."}, status=404)
+        
+    # Check ownership
+    if booking.garage.owner != request.user:
+        logger.warning(f"Unauthorized QR scan attempt by user {request.user.id} on booking {booking.id}")
+        return Response({"error": "You are not authorized to scan this QR code."}, status=403)
+        # Debug: Check if booking exists for any user
+        try:
+            other_booking = Booking.objects.get(id=booking_id)
+            logger.error(f"Booking {booking_id} exists but belongs to user {other_booking.driver_id}, not {request.user.id}")
+            return Response({"error": "This QR code doesn't belong to your account."}, status=404)
+        except Booking.DoesNotExist:
+            logger.error(f"Booking {booking_id} doesn't exist in database at all")
+            return Response({"error": "QR code is invalid - booking not found."}, status=404)
+    
     now = timezone.now()
+   
 
+    # Handle entry (pending or confirmed_late status)
     if booking.status in ("pending", "confirmed_late"):
         if booking.start_time is None:
+            logger.info(f"Recording entry for booking {booking_id}")
             booking.status = "confirmed"
             booking.start_time = now
             if not booking.confirmation_time:
@@ -243,37 +358,72 @@ def scan_qr_code(request):
                 booking.waiting_time = now - booking.created_at
 
             booking.save(update_fields=["status", "start_time", "waiting_time", "confirmation_time"])
+            logger.info(f"Entry recorded for booking {booking_id} at {now}")
 
-        return Response({
-            "message": "Entry recorded",
-            "action": "entry",
-            "start_time": booking.start_time,
-            "stop_timer": True
-        })
+            return Response({
+                "message": "Entry recorded successfully",
+                "action": "entry",
+                "start_time": booking.start_time,
+                "stop_timer": True
+            })
+        else:
+            logger.warning(f"Entry already recorded for booking {booking_id}")
+            return Response({
+                "message": "Entry already recorded",
+                "action": "entry_already_recorded",
+                "start_time": booking.start_time,
+            })
 
-    if booking.status == "confirmed":
+    # Handle exit (confirmed status)
+    elif booking.status == "confirmed":
+        logger.info(f"Recording exit for booking {booking_id}")
         booking.status = "completed"
         booking.end_time = now
 
         duration = booking.total_parking_time()
-        hours = duration.total_seconds() / 3600
-        booking.actual_cost = hours * float(booking.garage.price_per_hour)
+        if duration:
+            hours = duration.total_seconds() / 3600
+            booking.actual_cost = hours * float(booking.garage.price_per_hour)
+        else:
+            booking.actual_cost = 0
+
         booking.save(update_fields=["status", "end_time", "actual_cost"])
 
         spot = booking.parking_spot
         spot.status = "available"
         spot.save(update_fields=["status"])
 
+        logger.info(f"Exit recorded for booking {booking_id}: duration={duration}, cost={booking.actual_cost}")
+
         return Response({
-            "message": "Exit recorded",
+            "message": "Exit recorded successfully",
             "action": "exit",
             "start_time": booking.start_time,
             "end_time": booking.end_time,
             "waiting_time_minutes": int(booking.waiting_time.total_seconds() / 60) if booking.waiting_time else 0,
             "garage_time_minutes": int(booking.garage_time.total_seconds() / 60) if booking.garage_time else 0,
-            "total_duration_minutes": int(duration.total_seconds() / 60),
+            "total_duration_minutes": int(duration.total_seconds() / 60) if duration else 0,
             "actual_cost": round(booking.actual_cost, 2),
             "exit_summary": True,
         })
 
-    return Response({"error": "Invalid QR state."}, status=400)
+    # Handle invalid states
+    else:
+        logger.error(f"Invalid QR scan attempt: booking {booking_id} has status '{booking.status}'")
+        
+        # Provide specific error messages based on status
+        status_messages = {
+            'cancelled': 'This booking has been cancelled.',
+            'expired': 'This booking has expired.',
+            'completed': 'This booking has already been completed.',
+            'awaiting_payment': 'This booking is awaiting payment.',
+            'blocked': 'This booking is blocked.',
+            'awaiting_response': 'Please confirm or cancel this booking first through the app.'
+        }
+        
+        error_msg = status_messages.get(
+            booking.status, 
+            f"Cannot scan QR for booking with status '{booking.status}'. Expected 'pending', 'confirmed_late', or 'confirmed'."
+        )
+        
+        return Response({"error": error_msg}, status=400)

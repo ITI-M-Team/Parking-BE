@@ -11,3 +11,11 @@ urlpatterns = [
     path('api/bookings/', include('booking.urls')),
     path('api/owner/', include('owner_dashboard.urls')), 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+# Debug: Print all URLs 
+if settings.DEBUG:
+    from django.urls import get_resolver
+    resolver = get_resolver()
+    print("All registered URLs:")
+    for pattern in resolver.url_patterns:
+        print(f"  {pattern}")
