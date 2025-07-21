@@ -1,4 +1,5 @@
 from datetime import timedelta
+from decimal import Decimal
 import logging
 
 from django.utils import timezone
@@ -80,8 +81,8 @@ class BookingInitiateView(APIView):
         spot.save()
 
         # Deduct wallet
-        user.wallet_balance -= estimated_fee
-        user.save(update_fields=["wallet_balance"])
+        # user.wallet_balance -= estimated_fee
+        # user.save(update_fields=["wallet_balance"])
 
         # Create booking
         now = timezone.now()
@@ -332,14 +333,6 @@ def scan_qr_code(request):
     if booking.garage.owner != request.user:
         logger.warning(f"Unauthorized QR scan attempt by user {request.user.id} on booking {booking.id}")
         return Response({"error": "You are not authorized to scan this QR code."}, status=403)
-        # Debug: Check if booking exists for any user
-        try:
-            other_booking = Booking.objects.get(id=booking_id)
-            logger.error(f"Booking {booking_id} exists but belongs to user {other_booking.driver_id}, not {request.user.id}")
-            return Response({"error": "This QR code doesn't belong to your account."}, status=404)
-        except Booking.DoesNotExist:
-            logger.error(f"Booking {booking_id} doesn't exist in database at all")
-            return Response({"error": "QR code is invalid - booking not found."}, status=404)
     
     now = timezone.now()
    
@@ -383,10 +376,32 @@ def scan_qr_code(request):
         duration = booking.total_parking_time()
         if duration:
             hours = duration.total_seconds() / 3600
-            booking.actual_cost = hours * float(booking.garage.price_per_hour)
+            booking.actual_cost = Decimal(str(hours)) * booking.garage.price_per_hour
         else:
-            booking.actual_cost = 0
+            booking.actual_cost = Decimal('0')
 
+        # Start Update Wallet  ####
+        if booking.actual_cost > 0:
+            driver = booking.driver
+            garage_owner = booking.garage.owner
+            
+            # Check if driver has sufficient balance
+            if driver.wallet_balance < booking.actual_cost:
+                logger.error(f"Insufficient balance for booking {booking_id}: required={booking.actual_cost}, available={driver.wallet_balance}")
+                return Response({
+                    "error": f"Insufficient wallet balance. Required: {booking.actual_cost} EGP, Available: {driver.wallet_balance} EGP"
+                }, status=400)
+            
+            # Deduct from driver's wallet
+            driver.wallet_balance -= booking.actual_cost
+            driver.save(update_fields=["wallet_balance"])
+            logger.info(f"Deducted {booking.actual_cost} EGP from driver {driver.id} wallet")
+            
+            # Add to garage owner's wallet
+            garage_owner.wallet_balance += booking.actual_cost
+            garage_owner.save(update_fields=["wallet_balance"])
+            logger.info(f"Added {booking.actual_cost} EGP to garage owner {garage_owner.id} wallet")
+        # End Update Wallet  ####
         booking.save(update_fields=["status", "end_time", "actual_cost"])
 
         spot = booking.parking_spot
@@ -403,7 +418,7 @@ def scan_qr_code(request):
             "waiting_time_minutes": int(booking.waiting_time.total_seconds() / 60) if booking.waiting_time else 0,
             "garage_time_minutes": int(booking.garage_time.total_seconds() / 60) if booking.garage_time else 0,
             "total_duration_minutes": int(duration.total_seconds() / 60) if duration else 0,
-            "actual_cost": round(booking.actual_cost, 2),
+            "actual_cost": float(booking.actual_cost),
             "exit_summary": True,
         })
 
