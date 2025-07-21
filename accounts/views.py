@@ -95,6 +95,7 @@ class CurrentUserView(APIView):
             "phone": user.phone,
             "verification_status":user.verification_status,
             "is_superuser": user.is_superuser,
+            "wallet_balance": float(user.wallet_balance),
             "driver_license": build_url(user.driver_license),
             "car_license": build_url(user.car_license),
             "national_id_img": build_url(user.national_id_img),
