@@ -9,7 +9,8 @@ urlpatterns = [
     path('api/', include('accounts.urls')),
     path('', include('garage.urls')),  
     path('api/bookings/', include('booking.urls')),
-    path('api/owner/', include('owner_dashboard.urls')), 
+    path('api/owner/', include('owner_dashboard.urls')),
+    path('api/reports/', include('reports.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 # Debug: Print all URLs 
