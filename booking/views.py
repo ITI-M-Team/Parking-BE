@@ -353,6 +353,10 @@ def scan_qr_code(request):
             booking.save(update_fields=["status", "start_time", "waiting_time", "confirmation_time"])
             logger.info(f"Entry recorded for booking {booking_id} at {now}")
 
+            spot = booking.parking_spot
+            spot.status = 'occupied'
+            spot.save()
+
             return Response({
                 "message": "Entry recorded successfully",
                 "action": "entry",
