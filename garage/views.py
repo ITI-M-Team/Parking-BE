@@ -1,3 +1,4 @@
+from django.forms import ValidationError
 from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -6,9 +7,11 @@ from django.db.models import Avg, Q
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from geopy.distance import geodesic
 
-from .models import Garage, ParkingSpot
+from booking.models import Booking
+
+from .models import Garage, GarageReview, ParkingSpot
 from .serializers import (
-    GarageSerializer, GarageDetailSerializer,
+    GarageReviewSerializer, GarageSerializer, GarageDetailSerializer,
     ParkingSpotSerializer, GarageRegistrationSerializer,
     GarageUpdateSerializer
 )
@@ -22,12 +25,16 @@ class GarageDetailView(APIView):
                 average_rating=Avg('reviews__rating')
             ).get(id=id)
 
+            # default to 0 if no rating yet
+            garage.average_rating = round(garage.average_rating or 0, 1)
+
             data = GarageDetailSerializer(garage, context={'request': request}).data
             data["number_of_spots"] = garage.spots.count()
-
             return Response(data)
+
         except Garage.DoesNotExist:
             return Response({"error": "Garage not found"}, status=status.HTTP_404_NOT_FOUND)
+
 
 ####################### Get Spots in Garage #######################
 
@@ -116,3 +123,53 @@ class GarageOccupancyView(APIView):
             'occupied_spots': occupied_spots,
             'available_spots': available_spots
         })
+
+####################### Submit Garage Review #######################
+# class SubmitGarageReviewView(APIView):
+#     permission_classes = [IsAuthenticated]
+
+#     def post(self, request, garage_id):
+#         garage = get_object_or_404(Garage, id=garage_id)
+
+#         if GarageReview.objects.filter(driver=request.user, garage=garage).exists():
+#             return Response({'error': 'You have already submitted a review for this garage.'}, status=400)
+
+#         serializer = GarageReviewSerializer(
+#             data=request.data,
+#             context={'request': request}
+#         )
+
+#         if serializer.is_valid():
+#             serializer.save(garage=garage, driver=request.user)
+#             return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+#         else:
+#            print(serializer.errors)  # 👈 ضروري
+#            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class GarageReviewCreateView(APIView):
+    def post(self, request, garage_id, booking_id):
+        try:
+            garage = Garage.objects.get(id=garage_id)
+            booking = Booking.objects.get(id=booking_id, driver=request.user)
+
+            rating = request.data.get("rating")
+            comment = request.data.get("comment", "")
+
+            # منع التقييم المكرر
+            if GarageReview.objects.filter(booking=booking).exists():
+                return Response({"detail": "You already reviewed this booking."}, status=status.HTTP_400_BAD_REQUEST)
+
+            GarageReview.objects.create(
+                garage=garage,
+                booking=booking,
+                driver=request.user,
+                rating=rating,
+                comment=comment
+            )
+            return Response({"detail": "Review submitted."}, status=status.HTTP_201_CREATED)
+
+        except Garage.DoesNotExist:
+            return Response({"detail": "Garage not found."}, status=status.HTTP_404_NOT_FOUND)
+        except Booking.DoesNotExist:
+            return Response({"detail": "Booking not found or you do not own this booking."}, status=status.HTTP_404_NOT_FOUND)

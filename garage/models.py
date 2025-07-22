@@ -41,10 +41,18 @@ class Garage(models.Model):
         return self.name
 
 class GarageReview(models.Model):
+    driver = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     garage = models.ForeignKey(Garage, on_delete=models.CASCADE, related_name='reviews')
-    rating = models.PositiveIntegerField()
+    rating = models.PositiveSmallIntegerField()  # 1 to 5
+    comment = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    booking = models.OneToOneField('booking.Booking', on_delete=models.CASCADE, null=True, blank=True)
+
+    class Meta:
+        unique_together = ('driver', 'garage')  # one review per driver per garage
+
     def __str__(self):
-        return f"{self.garage.name} - {self.rating}"
+        return f"{self.driver} - {self.rating}"
 
 class ParkingSpot(models.Model):
     STATUS_CHOICES = [

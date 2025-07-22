@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Garage, ParkingSpot
+from .models import Garage, GarageReview, ParkingSpot
 from geopy.distance import geodesic
 
 class GarageDetailSerializer(serializers.ModelSerializer):
@@ -7,8 +7,7 @@ class GarageDetailSerializer(serializers.ModelSerializer):
     image = serializers.ImageField()
 
     def get_average_rating(self, obj):
-        return getattr(obj, 'annotated_rating', None)
-
+        return getattr(obj, 'average_rating', None)  # From annotation
     class Meta:
         model = Garage
         fields = ['id', 'name', 'address', 'latitude', 'longitude',
@@ -19,10 +18,6 @@ class GarageDetailSerializer(serializers.ModelSerializer):
         if obj.image:
             return request.build_absolute_uri(obj.image.url)
         return None
-
-    def get_average_rating(self, obj):
-        return getattr(obj, 'annotated_rating', obj.average_rating)
-
 
 class ParkingSpotSerializer(serializers.ModelSerializer):
     class Meta:
@@ -58,7 +53,7 @@ class GarageRegistrationSerializer(serializers.ModelSerializer):
         fields = [
             'name', 'address', 'latitude', 'longitude',
             'opening_hour', 'closing_hour', 'image',
-            'price_per_hour', 'number_of_spots','block_duration_hours'
+            'price_per_hour', 'number_of_spots','block_duration_hours','reservation_grace_period'
         ]
 
     def validate_number_of_spots(self, value):
@@ -127,3 +122,16 @@ class GarageUpdateSerializer(serializers.ModelSerializer):
         return instance
 
 #################end Garage Update Serializer ##########
+
+#########
+class GarageReviewSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = GarageReview
+        fields = ['id', 'driver', 'garage', 'booking', 'rating', 'comment', 'created_at']
+        read_only_fields = ['id', 'driver', 'garage', 'created_at']
+
+    def create(self, validated_data):
+        validated_data['driver'] = self.context['request'].user
+        validated_data['garage'] = self.context['garage']
+        validated_data['booking'] = self.context['booking']
+        return super().create(validated_data)

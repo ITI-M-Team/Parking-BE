@@ -8,6 +8,8 @@ class BookingDetailSerializer(serializers.ModelSerializer):
     garage_name   = serializers.CharField(source='garage.name', read_only=True)
     parking_spot  = serializers.CharField(source='parking_spot.slot_number', read_only=True)
     spot_id       = serializers.IntegerField(source='parking_spot.id', read_only=True)
+    garage_id = serializers.IntegerField(source="garage.id", read_only=True)
+
     price_per_hour = serializers.DecimalField(
         source='garage.price_per_hour', max_digits=6, decimal_places=2, read_only=True
     )
@@ -25,7 +27,7 @@ class BookingDetailSerializer(serializers.ModelSerializer):
         model  = Booking
         fields = [
             'id', 'garage', 'garage_name', 'parking_spot', 'spot_id',
-             'estimated_cost', 'price_per_hour',
+             'estimated_cost', 'price_per_hour',"garage_id",
             'reservation_expiry_time', 'status', 'qr_code_image',
             'confirmation_time', 'start_time', 'end_time',
             'wallet_balance', 'actual_cost',
