@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Weekly Garage Report</title>
+    <style>
+        body {
+            font-family: DejaVu Sans, sans-serif;
+            color: #333;
+            margin: 30px;
+        }
+
+        h1, h2 {
+            text-align: center;
+            color: #2c3e50;
+        }
+
+        p {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        table {
+            width: 100%;
+            table-layout: fixed;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 12px;
+        }
+
+        th, td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            word-wrap: break-word;
+            text-align: center;
+        }
+
+        th {
+            background-color: #f0f0f0;
+        }
+
+        .booking-table th, .booking-table td {
+            width: 14.28%;
+        }
+
+        .prediction-table th, .prediction-table td {
+            width: 50%;
+        }
+
+        .chart-container img {
+            width: 90%;
+            margin: 20px auto;
+            display: block;
+            border: 1px solid #aaa;
+        }
+
+        .revenue {
+            text-align: right;
+            font-weight: bold;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <h1>📄 Weekly Garage Report</h1>
+    <h2>{{ garage_name }}</h2> <!-- Garage Name -->
+    <p>Generated on: <strong>{{ generated_on }}</strong></p>
+
+    <h2>📌 Bookings Overview</h2>
+    <table class="booking-table">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>User</th>
+                <th>Date</th>
+                <th>Start Time</th>
+                <th>End Time</th>
+                <th>Spot Number</th>
+                <th>Actual Cost</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for booking in bookings %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ booking.user }}</td>
+                <td>{{ booking.created_at.date }}</td>
+                <td>{{ booking.start_time }}</td>
+                <td>{{ booking.end_time }}</td>
+                <td>{{ booking.spot_number }}</td>
+                <td>{{ booking.actual_cost }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="7">No bookings this week.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <p class="revenue">💰 Total Weekly Revenue: {{ total_revenue }}</p>
+
+    <h2>🔮 Predicted Bookings</h2>
+    <table class="prediction-table">
+        <thead>
+            <tr>
+                <th>Day</th>
+                <th>Predicted Bookings</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for day, value in predictions.items %}
+            <tr>
+                <td>{{ day }}</td>
+                <td>{{ value }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+  <div class="chart-container">
+    <img src="weekly_chart.png" alt="Weekly Bookings Chart">
+    <img src="prediction_chart.png" alt="Predicted Bookings Chart">
+    <img src="revenue_chart.png" alt="Actual Revenue Chart">
+    <img src="predicted_revenue_chart.png" alt="Predicted Revenue Chart">
+</div>
+
+</body>
+</html>
