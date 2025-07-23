@@ -52,8 +52,8 @@ class BookingInitiateView(APIView):
                 }, status=400)
 
         # Blocked user
-        # if user.blocked_until and user.blocked_until > timezone.now():
-        #     return Response({"error": f"لا يمكنك الحجز قبل {user.blocked_until}"}, status=403)
+        if user.blocked_until and user.blocked_until > timezone.now():
+            return Response({"error": f"لا يمكنك الحجز قبل {user.blocked_until}"}, status=403)
 
         # Check if user already has any active booking
         if Booking.objects.filter(
