@@ -8,5 +8,5 @@ urlpatterns = [
     path('api/garages/register/', GarageRegisterView.as_view(), name='garage-register'),
     path('api/garages/<int:id>/update/', GarageUpdateAPIView.as_view(), name='garage-update'),
     path('api/garages/<int:garage_id>/occupancy/', GarageOccupancyView.as_view(), name='garage-occupancy'),
-    path('garages/<int:garage_id>/review/<int:booking_id>/', GarageReviewCreateView.as_view(), name='garage-review'),
+    path('api/garages/<int:garage_id>/review/<int:booking_id>/', GarageReviewCreateView.as_view(), name='garage-review'),
 ]

@@ -30,6 +30,9 @@ class GarageDetailView(APIView):
 
             data = GarageDetailSerializer(garage, context={'request': request}).data
             data["number_of_spots"] = garage.spots.count()
+            data["average_rating"] = garage.average_rating 
+            
+
             return Response(data)
 
         except Garage.DoesNotExist:
@@ -160,15 +163,15 @@ class GarageReviewCreateView(APIView):
             if GarageReview.objects.filter(booking=booking).exists():
                 return Response({"detail": "You already reviewed this booking."}, status=status.HTTP_400_BAD_REQUEST)
 
-            GarageReview.objects.create(
+            review =GarageReview.objects.create(
                 garage=garage,
                 booking=booking,
                 driver=request.user,
                 rating=rating,
                 comment=comment
             )
-            return Response({"detail": "Review submitted."}, status=status.HTTP_201_CREATED)
-
+            serializer = GarageReviewSerializer(review)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
         except Garage.DoesNotExist:
             return Response({"detail": "Garage not found."}, status=status.HTTP_404_NOT_FOUND)
         except Booking.DoesNotExist:

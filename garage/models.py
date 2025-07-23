@@ -49,7 +49,7 @@ class GarageReview(models.Model):
     booking = models.OneToOneField('booking.Booking', on_delete=models.CASCADE, null=True, blank=True)
 
     class Meta:
-        unique_together = ('driver', 'garage')  # one review per driver per garage
+        unique_together = ('driver', 'booking')  # one review per driver per garage
 
     def __str__(self):
         return f"{self.driver} - {self.rating}"
