@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework_simplejwt.token_blacklist',
     #####our APPS #######
     'corsheaders',
     'accounts',
@@ -66,6 +67,8 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
 ]
+CORS_ALLOW_CREDENTIALS = True  
+
 ROOT_URLCONF = 'project.urls'
 
 TEMPLATES = [
@@ -121,11 +124,6 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
-
-USE_I18N = True
-
-USE_TZ = True
 TIME_ZONE = 'Africa/Cairo'
 USE_TZ = True  # لو False، مش هيحول UTC خالص
 
@@ -161,10 +159,14 @@ FRONTEND_BASE_URL = "http://localhost:5173"
 
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(hours=1),
-    'REFRESH_TOKEN_LIFETIME': timedelta(hours=10),
+     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': False,
+    'UPDATE_LAST_LOGIN': True,
+    'ALGORITHM': 'HS256',
     'AUTH_HEADER_TYPES': ('Bearer',),
-    'USER_ID_FIELD': 'id',  
+    'USER_ID_FIELD': 'id',
     'USER_AUTHENTICATION_FIELDS': ['email'],
 }
 CELERY_BROKER_URL = 'redis://localhost:6379/0'  # Broker for tasks
