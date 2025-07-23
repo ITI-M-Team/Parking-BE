@@ -93,6 +93,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             "role": user.role,
             "national_id": user.national_id,
             "phone": user.phone,
+            "verification_status": user.verification_status,
             "driver_license": user.driver_license.url if user.driver_license else None,
             "car_license": user.car_license.url if user.car_license else None,
             "national_id_img": user.national_id_img.url if user.national_id_img else None,
