@@ -330,7 +330,10 @@ def scan_qr_code(request):
         return Response({"error": "QR code is invalid - booking not found."}, status=404)
         
     # Check ownership
-    if booking.garage.owner != request.user:
+    # If the garage owner is scanning for their own garage, allow. If not, allow but handle wallet deduction below.
+    is_garage_owner = request.user == booking.garage.owner
+    is_owner_booking_elsewhere = (request.user == booking.driver) and (booking.garage.owner != request.user)
+    if not is_garage_owner and not is_owner_booking_elsewhere:
         logger.warning(f"Unauthorized QR scan attempt by user {request.user.id} on booking {booking.id}")
         return Response({"error": "You are not authorized to scan this QR code."}, status=403)
     
@@ -388,23 +391,36 @@ def scan_qr_code(request):
         if booking.actual_cost > 0:
             driver = booking.driver
             garage_owner = booking.garage.owner
-            
-            # Check if driver has sufficient balance
-            if driver.wallet_balance < booking.actual_cost:
-                logger.error(f"Insufficient balance for booking {booking_id}: required={booking.actual_cost}, available={driver.wallet_balance}")
-                return Response({
-                    "error": f"Insufficient wallet balance. Required: {booking.actual_cost} EGP, Available: {driver.wallet_balance} EGP"
-                }, status=400)
-            
-            # Deduct from driver's wallet
-            driver.wallet_balance -= booking.actual_cost
-            driver.save(update_fields=["wallet_balance"])
-            logger.info(f"Deducted {booking.actual_cost} EGP from driver {driver.id} wallet")
-            
-            # Add to garage owner's wallet
-            garage_owner.wallet_balance += booking.actual_cost
-            garage_owner.save(update_fields=["wallet_balance"])
-            logger.info(f"Added {booking.actual_cost} EGP to garage owner {garage_owner.id} wallet")
+
+            # If garage owner is booking in their own garage, skip wallet update
+            if is_garage_owner and (driver == garage_owner):
+                logger.info(f"Garage owner {driver.id} booked in their own garage. No wallet update.")
+            # If garage owner is booking in another garage, deduct from their wallet
+            elif is_owner_booking_elsewhere:
+                if driver.wallet_balance < booking.actual_cost:
+                    logger.error(f"Insufficient balance for booking {booking_id}: required={booking.actual_cost}, available={driver.wallet_balance}")
+                    return Response({
+                        "error": f"Insufficient wallet balance. Required: {booking.actual_cost} EGP, Available: {driver.wallet_balance} EGP"
+                    }, status=400)
+                driver.wallet_balance -= booking.actual_cost
+                driver.save(update_fields=["wallet_balance"])
+                logger.info(f"Deducted {booking.actual_cost} EGP from garage owner {driver.id} wallet (booking in another garage)")
+                garage_owner.wallet_balance += booking.actual_cost
+                garage_owner.save(update_fields=["wallet_balance"])
+                logger.info(f"Added {booking.actual_cost} EGP to garage owner {garage_owner.id} wallet")
+            else:
+                # Normal case: driver pays garage owner
+                if driver.wallet_balance < booking.actual_cost:
+                    logger.error(f"Insufficient balance for booking {booking_id}: required={booking.actual_cost}, available={driver.wallet_balance}")
+                    return Response({
+                        "error": f"Insufficient wallet balance. Required: {booking.actual_cost} EGP, Available: {driver.wallet_balance} EGP"
+                    }, status=400)
+                driver.wallet_balance -= booking.actual_cost
+                driver.save(update_fields=["wallet_balance"])
+                logger.info(f"Deducted {booking.actual_cost} EGP from driver {driver.id} wallet")
+                garage_owner.wallet_balance += booking.actual_cost
+                garage_owner.save(update_fields=["wallet_balance"])
+                logger.info(f"Added {booking.actual_cost} EGP to garage owner {garage_owner.id} wallet")
         # End Update Wallet  ####
         booking.save(update_fields=["status", "end_time", "actual_cost"])
 
