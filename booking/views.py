@@ -52,8 +52,8 @@ class BookingInitiateView(APIView):
                 }, status=400)
 
         # Blocked user
-        # if user.blocked_until and user.blocked_until > timezone.now():
-        #     return Response({"error": f"لا يمكنك الحجز قبل {user.blocked_until}"}, status=403)
+        if user.blocked_until and user.blocked_until > timezone.now():
+            return Response({"error": f"لا يمكنك الحجز قبل {user.blocked_until}"}, status=403)
 
         # Check if user already has any active booking
         if Booking.objects.filter(
@@ -162,8 +162,8 @@ class CancelBookingView(APIView):
         if booking.status != "pending":
             return Response({"error": "Can cancel only pending bookings."}, status=400)
 ##this part for expired bookings (cann't bokk new until i have un experied booking so comment this part temporarily)
-        # if timezone.now() > booking.reservation_expiry_time:
-        #     return Response({"error": "Grace‑period ended."}, status=400)
+        if timezone.now() > booking.reservation_expiry_time:
+            return Response({"error": "Grace‑period ended."}, status=400)
 
         booking.status = "cancelled"
         booking.save(update_fields=["status"])
@@ -422,7 +422,7 @@ def scan_qr_code(request):
             "waiting_time_minutes": int(booking.waiting_time.total_seconds() / 60) if booking.waiting_time else 0,
             "garage_time_minutes": int(booking.garage_time.total_seconds() / 60) if booking.garage_time else 0,
             "total_duration_minutes": int(duration.total_seconds() / 60) if duration else 0,
-            "actual_cost": float(booking.actual_cost),
+            "actual_cost": round(float(booking.actual_cost), 2),
             "exit_summary": True,
         })
 
