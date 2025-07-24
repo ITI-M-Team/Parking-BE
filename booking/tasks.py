@@ -15,7 +15,7 @@ def notify_before_expiry(booking_id: int) -> None:
             .get(id=booking_id)
         )
 
-        # لو خلاص عمل confirm_late مايبعتش الرسالة
+        # If already confirmed_late, don't send notification
         if (
             booking.status == "pending"
             and not booking.late_alert_sent
@@ -25,20 +25,21 @@ def notify_before_expiry(booking_id: int) -> None:
             user = booking.driver
             garage_name = booking.garage.name
 
-            subject = "⏰ انتهت مهلة الحجز – الرجاء الاختيار"
+            subject = "⏰ Booking Time Expired – Action Required"
             body = (
-                f"مرحبًا {user.first_name},\n\n"
-                f"انتهت مهلة حجزك فى **{garage_name}**.\n"
-                f"يمكنك الآن:\n"
-                f"• الضغط على (تأكيد) لإكمال الحجز والدفع، أو\n"
-                f"• الضغط على (إلغاء) وسيُفرض حظر مؤقَّت.\n\n"
-                f"نظام الـParking"
+                f"Hello {user.first_name},\n\n"
+                f"Your reservation time at **{garage_name}** has expired.\n"
+                f"You can now:\n"
+                f"• Click (Confirm) to proceed with the booking and pay, or\n"
+                f"• Click (Cancel), which will result in a temporary block.\n\n"
+                f"Thank you,\n"
+                f"Parking System"
             )
 
             send_mail(
                 subject,
                 body,
-                "Parking System <noreply@parking.com>",
+                "Parking System <noreply@parking.com>",
                 [user.email],
                 fail_silently=True,
             )
@@ -83,17 +84,18 @@ def expire_or_block_booking(booking_id: int) -> None:
         driver.blocked_until = now + timedelta(hours=block_hours)
         driver.save(update_fields=["blocked_until"])
 
-        subject = "تم إلغاء الحجز ‑ حظر مؤقت"
+        subject = "Booking Cancelled – Temporary Block Applied"
         body = (
-            f"مرحبًا {driver.first_name},\n\n"
-            f"تم إلغاء حجزك فى {booking.garage.name} لعدم التأكيد.\n"
-            f"تم حظرك من إنشاء حجوزات جديدة لمدة {block_hours} ساعة.\n\n"
-            f"نظام الـParking"
+            f"Hello {driver.first_name},\n\n"
+            f"Your booking at {booking.garage.name} has been cancelled due to no confirmation.\n"
+            f"You have been temporarily blocked from creating new bookings for {block_hours} hour(s).\n\n"
+            f"Thank you,\n"
+            f"Parking System"
         )
         send_mail(
             subject,
             body,
-            "Parking System <noreply@parking.com>",
+            "Parking System <noreply@parking.com>",
             [driver.email],
             fail_silently=True,
         )

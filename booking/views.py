@@ -10,7 +10,7 @@ from rest_framework.generics import RetrieveAPIView
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-
+from booking.tasks_late import handle_late_confirmation_no_entry
 from booking.models import Booking
 from booking.serializers import BookingInitiationSerializer, BookingDetailSerializer
 from booking.tasks import expire_or_block_booking, notify_before_expiry
@@ -199,6 +199,10 @@ class BookingLateDecisionView(APIView):
             booking.save(update_fields=[
                 "status", "confirmed_late_at", "reservation_expiry_time", "late_alert_sent", "confirmation_time"
             ])
+
+            # Schedule task to check entry after 1 hour
+            from booking.tasks_late import handle_late_confirmation_no_entry
+            handle_late_confirmation_no_entry.apply_async((booking.id,), eta=now + timedelta(hours=1))
 
             logger.info(
                 f"User {request.user.id} CONFIRMED late booking {booking.id} at {now.isoformat()}"
