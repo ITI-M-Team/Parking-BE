@@ -14,6 +14,17 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = config('SECRET_KEY')
 
+# settigs.py
+
+# --- Paymob Test
+PAYMOB_API_KEY = "ZXlKaGJHY2lPaUpJVXpVeE1pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SmpiR0Z6Y3lJNklrMWxjbU5vWVc1MElpd2ljSEp2Wm1sc1pWOXdheUk2TVRBMk1qZzVOeXdpYm1GdFpTSTZJbWx1YVhScFlXd2lmUS52QTFzWl9jMGpVb0kyN1JLbUVRRE8wQzdidVVhMF9HaFdISFh6MUFxWldRTFMxb1ZOc1RlSHNnMU56cFV2Q1oyOHlWbENHS2JJLUxUR3dYM3pYODN3dw=="
+PAYMOB_IFRAME_ID =  942919
+PAYMOB_HMAC_SECRET = "EE963FCCBD12F7AF63DF8AD42D0CEEBA"
+PAYMOB_INTEGRATION_ID_WALLET = 5211195
+PAYMOB_INTEGRATION_ID_CARD = 5211193  
+
+
+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=True, cast=bool)
 
@@ -37,6 +48,7 @@ INSTALLED_APPS = [
     'booking',
     'owner_dashboard',
     'reports',
+    'payment',
 
 
 ]

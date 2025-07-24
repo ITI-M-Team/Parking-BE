@@ -13,6 +13,8 @@ urlpatterns = [
     path('api/reports/', include('reports.urls')),
     path("api/rag/", include("ragchat.urls")),
 
+    path('api/wallet/', include('payment.urls')),
+
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 # Debug: Print all URLs 

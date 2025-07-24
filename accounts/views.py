@@ -360,24 +360,24 @@ def verification_stats(request):
         'resubmission_count': resubmission_count,
         'verification_rate': (verified_requests / total_requests * 100) if total_requests > 0 else 0
     })
-class AddToWalletView(APIView):
-    permission_classes = [IsAuthenticated]
+# class AddToWalletView(APIView):
+#     permission_classes = [IsAuthenticated]
 
-    def post(self, request):
-        amount = request.data.get("amount")
-        try:
-            amount = Decimal(amount)
-            if amount <= 0:
-                return Response({"error": "Amount must be greater than 0"}, status=400)
+#     def post(self, request):
+#         amount = request.data.get("amount")
+#         try:
+#             amount = Decimal(amount)
+#             if amount <= 0:
+#                 return Response({"error": "Amount must be greater than 0"}, status=400)
 
-            user = request.user
-            user.wallet_balance += amount
-            user.save(update_fields=["wallet_balance"])
+#             user = request.user
+#             user.wallet_balance += amount
+#             user.save(update_fields=["wallet_balance"])
 
-            return Response({
-                "message": f"Successfully added {amount} EGP to wallet.",
-                "wallet_balance": float(user.wallet_balance),
-            }, status=200)
+#             return Response({
+#                 "message": f"Successfully added {amount} EGP to wallet.",
+#                 "wallet_balance": float(user.wallet_balance),
+#             }, status=200)
 
-        except Exception as e:
-            return Response({"error": str(e)}, status=400)
+#         except Exception as e:
+#             return Response({"error": str(e)}, status=400)
