@@ -12,7 +12,7 @@ from django.core.mail import send_mail
 from django.shortcuts import redirect
 from django.conf import settings
 from django.db.models import Q
-
+from decimal import Decimal
 from .models import *
 from .serializers import *
 from rest_framework.permissions import IsAuthenticated
@@ -276,6 +276,33 @@ def send_verification_email(user, verification_status, reason='', is_resubmissio
         fail_silently=False,
     )
 
+class AddToWalletView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        amount = request.data.get("amount")
+        method = request.data.get("method")  # ⬅️ خدت الميثود
+
+        try:
+            amount = Decimal(amount)
+            if amount <= 0:
+                return Response({"error": "Amount must be greater than 0"}, status=400)
+
+            if method not in ["vodafone_cash", "credit_card", "paypal"]:
+                return Response({"error": "Invalid payment method"}, status=400)
+
+            user = request.user
+            user.wallet_balance += amount
+            user.save(update_fields=["wallet_balance"])
+
+            return Response({
+                "message": f"Successfully added {amount} EGP to wallet using {method}.",
+                "wallet_balance": float(user.wallet_balance),
+            }, status=200)
+
+        except Exception as e:
+            return Response({"error": str(e)}, status=400)
+
 #########   Update verification status and send email notification    ###########
 
 @api_view(['POST'])
@@ -333,3 +360,24 @@ def verification_stats(request):
         'resubmission_count': resubmission_count,
         'verification_rate': (verified_requests / total_requests * 100) if total_requests > 0 else 0
     })
+class AddToWalletView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        amount = request.data.get("amount")
+        try:
+            amount = Decimal(amount)
+            if amount <= 0:
+                return Response({"error": "Amount must be greater than 0"}, status=400)
+
+            user = request.user
+            user.wallet_balance += amount
+            user.save(update_fields=["wallet_balance"])
+
+            return Response({
+                "message": f"Successfully added {amount} EGP to wallet.",
+                "wallet_balance": float(user.wallet_balance),
+            }, status=200)
+
+        except Exception as e:
+            return Response({"error": str(e)}, status=400)

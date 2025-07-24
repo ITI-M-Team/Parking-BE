@@ -27,11 +27,12 @@ class ParkingSpotSerializer(serializers.ModelSerializer):
 
 class GarageSerializer(serializers.ModelSerializer):
     distance = serializers.SerializerMethodField()
+    available_spots = serializers.SerializerMethodField()
 
     class Meta:
         model = Garage
         fields = ['id', 'name', 'address', 'latitude', 'longitude',
-                  'price_per_hour',  'distance']
+                  'price_per_hour', 'distance', 'available_spots']
 
     def get_distance(self, obj):
         request = self.context.get('request')
@@ -44,6 +45,10 @@ class GarageSerializer(serializers.ModelSerializer):
                     (obj.latitude, obj.longitude)
                 ).km, 2)
         return None
+
+    def get_available_spots(self, obj):
+        return obj.spots.filter(status='available').count()
+
 ##########  grage registration serializer ##########
 class GarageRegistrationSerializer(serializers.ModelSerializer):
     number_of_spots = serializers.IntegerField(write_only=True)
