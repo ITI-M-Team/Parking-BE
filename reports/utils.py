@@ -168,14 +168,24 @@ def render_pdf(template_src, context_dict):
     pisa.CreatePDF(BytesIO(html.encode("UTF-8")), dest=result)
     return result
 
+from garage.models import Garage
+
 def generate_and_send_report(garage_id, email):
     now = datetime.datetime.now()
     one_week_ago = now - datetime.timedelta(days=7)
 
-    bookings = Booking.objects.select_related('driver', 'parking_spot', 'garage').filter(
-        garage_id=garage_id,
+    try:
+        garage = Garage.objects.get(id=garage_id)
+    except Garage.DoesNotExist:
+      
+        print(f"Error: Garage with ID {garage_id} not found.")
+        return 
+
+    bookings = Booking.objects.select_related('driver', 'parking_spot').filter(
+        garage=garage, 
         created_at__gte=one_week_ago
     )
+    # ===================================================================
 
     chart = generate_graph(bookings)
     predictions = generate_predictions(garage_id)
@@ -203,13 +213,13 @@ def generate_and_send_report(garage_id, email):
         'generated_on': now.strftime('%Y-%m-%d'),
         'predictions': predictions,
         'total_revenue': f"{total_revenue:.2f} EGP",
-        'garage_name': bookings[0].garage.name if bookings else "Unknown",
+        'garage_name': garage.name, 
     }
 
     pdf = render_pdf('reports/weekly_report.html', context)
 
     email_msg = EmailMessage(
-        subject='\U0001F4C4 Weekly Garage Report + \U0001F4CA Predictions',
+        subject=f'\U0001F4C4 Weekly Report for {garage.name}', 
         body='Attached is your weekly report with charts and prediction insights.',
         to=[email]
     )
