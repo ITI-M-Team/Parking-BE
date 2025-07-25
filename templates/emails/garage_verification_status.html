@@ -1,0 +1,134 @@
+
+<!-- templates/emails/garage_verification_status.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Garage Verification Status Update</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+        .verified { background-color: #4CAF50; }
+        .rejected { background-color: #f44336; }
+        .pending { background-color: #FF9800; }
+        .content { padding: 20px; background-color: #f9f9f9; border-radius: 0 0 8px 8px; }
+        .footer { padding: 10px; text-align: center; font-size: 12px; color: #666; margin-top: 20px; }
+        .highlight { font-weight: bold; color: #2196F3; }
+        .reason-box { background-color: #ffebee; border-left: 4px solid #f44336; padding: 15px; margin: 15px 0; border-radius: 4px; }
+        .success-box { background-color: #e8f5e8; border-left: 4px solid #4CAF50; padding: 15px; margin: 15px 0; border-radius: 4px; }
+        .action-button { 
+            display: inline-block; 
+            padding: 12px 24px; 
+            background-color: #2196F3; 
+            color: white; 
+            text-decoration: none; 
+            border-radius: 4px; 
+            margin: 10px 0; 
+            font-weight: bold;
+        }
+        .action-button:hover { background-color: #1976D2; }
+        ul { padding-left: 20px; }
+        li { margin-bottom: 8px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header {% if status == 'Verified' %}verified{% elif status == 'Rejected' %}rejected{% else %}pending{% endif %}">
+            <h1>🅿️ Parkly</h1>
+            <h2>
+                {% if status == 'Verified' %}
+                    🎉 Garage Verified Successfully!
+                {% elif status == 'Rejected' %}
+                    ❌ Garage Verification Rejected
+                {% else %}
+                    📋 Garage Under Review
+                {% endif %}
+            </h2>
+        </div>
+        
+        <div class="content">
+            <p>Dear {{ user.first_name|default:user.username }},</p>
+            
+            {% if status == 'Verified' %}
+                <div class="success-box">
+                    <p><strong>🎊 Congratulations!</strong> Your garage <span class="highlight">"{{ garage_name }}"</span> has been <strong>verified</strong> and approved for listing.</p>
+                </div>
+                
+                <p><strong>🚀 What happens next:</strong></p>
+                <ul>
+                    <li>✅ Your garage is now live and available for booking</li>
+                    <li>🚗 Drivers can find and reserve parking spots in your garage</li>
+                    <li>💰 You can start earning from your parking spaces immediately</li>
+                    <li>📊 Manage all bookings and earnings from your owner dashboard</li>
+                    <li>📱 Receive notifications for new bookings and payments</li>
+                </ul>
+                
+                <div style="text-align: center; margin: 20px 0;">
+                    <a href="#" class="action-button">View My Dashboard</a>
+                </div>
+                
+                <p>🎯 <strong>Pro tip:</strong> Make sure your garage details are always up to date and respond promptly to customer inquiries to maintain high ratings!</p>
+                
+                <p>Welcome to the Parkly community of verified garage owners! 🤝</p>
+                
+            {% elif status == 'Rejected' %}
+                <div class="reason-box">
+                    <p><strong>😔 Unfortunately</strong>, your garage <span class="highlight">"{{ garage_name }}"</span> has been <strong>rejected</strong> for the following reason:</p>
+                    <p style="font-style: italic; background-color: white; padding: 10px; border-radius: 4px; margin: 10px 0;">
+                        "{{ reason }}"
+                    </p>
+                </div>
+                
+                <p><strong>🔧 What you can do next:</strong></p>
+                <ul>
+                    <li>📖 Review the rejection reason carefully above</li>
+                    <li>✏️ Make the necessary corrections to your garage information</li>
+                    <li>📄 Update required documents if mentioned in the reason</li>
+                    <li>🔄 Resubmit your garage for review after making changes</li>
+                    <li>💬 Contact our support team if you need clarification</li>
+                </ul>
+                
+                <div style="text-align: center; margin: 20px 0;">
+                    <a href="#" class="action-button">Update My Garage</a>
+                </div>
+                
+                <p>💪 <strong>Don't give up!</strong> Most issues can be easily resolved. You can resubmit your garage after making the required changes.</p>
+                
+            {% else %}
+                <p>{% if is_resubmission %}🔄 Your updated garage information for{% else %}📝 Your garage registration for{% endif %} <span class="highlight">"{{ garage_name }}"</span> is currently <strong>under review</strong>.</p>
+                
+                <p><strong>⏱️ Review Process:</strong></p>
+                <ul>
+                    <li>👥 Our verification team is carefully reviewing your garage information</li>
+                    <li>⏰ This process typically takes 1-3 business days</li>
+                    <li>📧 You will receive another email once the review is complete</li>
+                    <li>😊 No action is required from your side at this time</li>
+                    <li>📱 You can check status updates in your dashboard anytime</li>
+                </ul>
+                
+                <div style="text-align: center; margin: 20px 0;">
+                    <a href="#" class="action-button">Check Status</a>
+                </div>
+            {% endif %}
+            
+            {% if reason and status != 'Rejected' %}
+                <div style="background-color: #e3f2fd; border-left: 4px solid #2196F3; padding: 15px; margin: 15px 0; border-radius: 4px;">
+                    <p><strong>📝 Admin Notes:</strong> {{ reason }}</p>
+                </div>
+            {% endif %}
+            
+            <p>📊 You can check your garage status anytime from your <a href="#" style="color: #2196F3;">owner dashboard</a>.</p>
+            
+            <p>Best regards,<br>
+            <strong>The Parkly Team</strong> 🚗</p>
+        </div>
+        
+        <div class="footer">
+            <p>This is an automated message. Please do not reply to this email.</p>
+            <p>If you have questions, please contact our support team at <a href="mailto:support@parkly.com">support@parkly.com</a></p>
+            <p>© 2024 Parkly. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

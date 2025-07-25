@@ -13,6 +13,25 @@ class Garage(models.Model):
     opening_hour = models.TimeField()
     closing_hour = models.TimeField()
     image = models.ImageField(upload_to='garage_images/', null=True, blank=True)
+    # Contract document field (required)
+    contract_document = models.FileField(
+        upload_to='garage_contracts/', 
+        null=False, 
+        blank=False,
+        help_text="Upload garage contract document (PDF, DOC, DOCX) or image (JPG, PNG, JPEG)"
+    )
+      # Add verification status field
+    verification_status = models.CharField(
+        max_length=20,
+        default='Pending',
+        choices=(
+            ('Pending', 'Pending'),
+            ('Verified', 'Verified'),
+            ('Rejected', 'Rejected'),
+        )
+    )
+
+    
     price_per_hour = models.DecimalField(max_digits=6, decimal_places=2, default=0.0)
     reservation_grace_period = models.PositiveIntegerField(
         default=15,
@@ -35,11 +54,47 @@ class Garage(models.Model):
         if self.price_per_hour < 0:
             raise ValidationError({'price_per_hour': 'Hourly rate must be positive or zero.'})
         
+        #Validate contract document file type
+        if self.contract_document:
+            allowed_extensions = ['.pdf', '.doc', '.docx', '.jpg', '.jpeg', '.png']
+            file_extension = self.contract_document.name.lower().split('.')[-1]
+            if f'.{file_extension}' not in allowed_extensions:
+                raise ValidationError({
+                    'contract_document': 'Only PDF, DOC, DOCX, JPG, JPEG, and PNG files are allowed for contract documents.'
+                })
     
    
     def __str__(self):
         return self.name
-
+# New model for garage verification requests
+class GarageVerificationRequest(models.Model):
+    STATUS_CHOICES = (
+        ('Pending', 'Pending'),
+        ('Verified', 'Verified'),
+        ('Rejected', 'Rejected'),
+    )
+    
+    garage = models.ForeignKey(Garage, on_delete=models.CASCADE, related_name='verification_requests')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Pending')
+    reason = models.TextField(blank=True, null=True, help_text="Reason for rejection or additional notes")
+    reviewed_by = models.ForeignKey(
+        CustomUser, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='reviewed_garage_requests',
+        limit_choices_to={'is_superuser': True}
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Garage Verification Request"
+        verbose_name_plural = "Garage Verification Requests"
+    
+    def __str__(self):
+        return f"Garage Verification Request for {self.garage.name} - {self.status}"
 class GarageReview(models.Model):
     driver = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     garage = models.ForeignKey(Garage, on_delete=models.CASCADE, related_name='reviews')

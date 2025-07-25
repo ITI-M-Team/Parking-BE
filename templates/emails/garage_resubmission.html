@@ -1,0 +1,49 @@
+<!-- templates/emails/garage_resubmission.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Garage Information Updated</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #2196F3; color: white; padding: 20px; text-align: center; }
+        .content { padding: 20px; background-color: #f9f9f9; }
+        .footer { padding: 10px; text-align: center; font-size: 12px; color: #666; }
+        .highlight { color: #2196F3; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Parkly</h1>
+            <h2>Garage Information Updated</h2>
+        </div>
+        
+        <div class="content">
+            <p>Dear {{ user.first_name|default:user.username }},</p>
+            
+            <p>Your garage information for <span class="highlight">"{{ garage_name }}"</span> has been successfully updated.</p>
+            
+            <p>Since you've made changes to critical information (such as contract document, location, or garage details), your garage is now <strong>under review</strong> again.</p>
+            
+            <p><strong>Review Process:</strong></p>
+            <ul>
+                <li>Our team will review the updated information</li>
+                <li>This process typically takes 1-3 business days</li>
+                <li>You will receive an email notification once the review is complete</li>
+                <li>Your garage will remain accessible during the review process</li>
+            </ul>
+            
+            <p>Thank you for keeping your garage information up to date!</p>
+            
+            <p>Best regards,<br>
+            The Parkly Team</p>
+        </div>
+        
+        <div class="footer">
+            <p>This is an automated message. Please do not reply to this email.</p>
+        </div>
+    </div>
+</body>
+</html>
