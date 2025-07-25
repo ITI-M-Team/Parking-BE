@@ -517,8 +517,8 @@ class OwnerDashboardDataView(generics.ListAPIView):
                 
                 # Calculate today's revenue
                 today_revenue = sum(
-                    booking.total_price for booking in today_bookings
-                    if booking.total_price
+                    booking.actual_cost for booking in today_bookings
+                    if booking.actual_cost
                 )
                 
                 # Check if garage is currently open (calculate from hours)
@@ -546,7 +546,7 @@ class OwnerDashboardDataView(generics.ListAPIView):
                             'spot_number': booking.parking_spot.slot_number,
                             'start_time': booking.start_time,
                             'end_time': booking.end_time,
-                            'total_price': booking.total_price,
+                            'total_price': booking.actual_cost,
                             'status': booking.status
                         }
                         for booking in today_bookings
