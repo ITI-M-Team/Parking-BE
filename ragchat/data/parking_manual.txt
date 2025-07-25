@@ -1,0 +1,320 @@
+SMART PARKING APP - USER MANUAL (ENGLISH)
+
+Welcome to Parkly Smart Assistant.
+Whether you are a Driver, Garage Owner, or Garage Employee, this manual will guide you through every step of the platform.
+
+    WELCOME TO PARKLY SMART ASSISTANT
+
+Parkly Smart Assistant is your built-in AI helper available 24/7.
+Simply ask questions like:
+
+    "How do I register?"
+
+    "Where is my QR Code?"
+
+    "Can I cancel my booking?"
+
+    "How do I withdraw earnings?"
+
+The assistant will provide you with step-by-step guidance.
+
+    GETTING STARTED - FIRST TIME USER
+
+How to Begin:
+
+    Open the app.
+
+    Click "Register".
+
+    Choose your role:
+
+        Driver
+
+        Garage Owner
+
+Document Upload Requirements:
+
+    For Drivers: Upload your driver's license and car license.
+
+    For Garage Owners: Upload both sides of your national ID.
+
+Your account will begin as "Pending Verification".
+You will receive email or SMS updates regarding your verification status.
+If your documents are rejected, you can re-upload valid copies.
+
+Note: Unverified accounts cannot access the main features of the platform.
+
+    ACCOUNT & SECURITY
+
+Login:
+
+    Enter your registered email/phone number and password.
+
+    Optionally, check "Remember Me" to stay signed in.
+
+    Upon login, you will be directed to your personalized dashboard.
+
+Forgot Password:
+
+    Click "Forgot Password".
+
+    Enter your registered email or phone number.
+
+    You will receive a reset link or OTP.
+
+    Follow the instructions to create a new password.
+
+    DRIVER ROLE – BOOKING & NAVIGATION
+
+Finding a Garage:
+
+    Open your Driver Dashboard.
+
+    An interactive map displays your current location along with nearby garages, showing details such as:
+
+        Garage name
+
+        Price per hour
+
+        Distance
+
+        Available spots
+
+        Rating
+
+Search & Filter Options:
+
+    Use the search bar to enter specific locations or addresses.
+
+    Apply filters by price, distance, or ratings.
+
+Booking a Parking Spot:
+
+    Click on a garage marker on the map.
+
+    View the Garage Details page.
+
+    Select your preferred arrival time and available parking spot.
+
+    Click "Book Now".
+
+Booking Confirmation:
+After clicking "Book Now", a confirmation page will display:
+
+    Garage name
+
+    Selected spot
+
+    Estimated arrival time
+
+    Total price
+
+    A countdown timer (e.g., 2 minutes)
+
+If the timer expires before confirmation, the booking will be automatically canceled.
+
+QR Code System:
+
+    Once a booking is confirmed, you will receive a unique QR Code.
+
+    The QR Code can be found on the booking confirmation page and in your Current Bookings section.
+
+    How it works:
+
+        At entry: A garage employee scans your QR Code to record the check-in time.
+
+        At exit: The QR Code is scanned again to record the check-out time.
+
+        The app automatically calculates the parking duration and final cost.
+
+    WALLET & PAYMENTS
+
+Payment Process:
+
+    Payment is automatically deducted from your wallet balance if sufficient funds exist.
+
+    If funds are insufficient, you must top up before confirming the booking.
+
+Adding Funds:
+
+    Navigate to Wallet & Transactions, then select "Add Funds".
+
+    Choose your preferred payment method:
+
+        Visa / Mastercard
+
+        Vodafone Cash
+
+        Fawry
+
+        Apple Pay / Google Pay
+
+Cash Payment:
+
+    Cash payment is available only if the garage allows it, as indicated in the garage's profile.
+
+    BOOKING MANAGEMENT
+
+Viewing Bookings:
+
+    In the Current Bookings section, you can view all active reservations along with:
+
+        Garage name
+
+        QR Code
+
+        Spot number
+
+        Estimated time
+
+        Price
+
+        An option to cancel
+
+Canceling a Booking:
+
+    You may cancel within an allowed time period without penalty.
+
+    Late cancellations will incur a penalty fee.
+
+    Frequent late cancellations may result in a temporary block (for example, a one-hour suspension).
+
+Receipts & Booking History:
+
+    After each parking session, a PDF receipt is automatically generated.
+
+    The receipt includes details such as:
+
+        Garage name
+
+        Entry and exit times
+
+        Booking ID
+
+        Final cost
+
+    The receipt is sent to your email and also available in "My Bookings".
+
+Ratings & Reviews:
+
+    After exiting the garage, you will be prompted to rate the experience (1 to 5 stars) and optionally leave comments.
+
+    Garage Owners can view overall ratings, recent reviews, and user feedback.
+
+    GARAGE EMPLOYEE ROLE – QR SCANNING & TRACKING
+
+Garage Employee Functions:
+
+    Use the QR Scan page to scan drivers' QR Codes at both entry and exit.
+
+    The system automatically records:
+
+        Entry time
+
+        Exit time
+
+        Total parking duration
+
+        Payment status based on the time parked, hourly rate, and any applicable discounts or penalties.
+
+    GARAGE OWNER ROLE – REGISTRATION & MANAGEMENT
+
+Registering a Garage:
+
+    Log in to your Garage Owner Dashboard.
+
+    Click "Register Garage".
+
+    Fill in the required details:
+
+        Garage name
+
+        Full location (with map integration)
+
+        Hourly rate
+
+        Operating hours
+
+        Total number of parking spots
+
+        Cancellation time window
+
+        Available payment methods (cash, online, or both)
+
+Note: An admin will verify your submission before your garage goes live.
+
+Managing Your Garage:
+
+    Edit garage information such as hours, rates, and policies at any time.
+
+    Monitor real-time availability of parking spots.
+
+    Enable or disable cash and online payment options as necessary.
+
+    Add or remove Garage Employees.
+
+    View current active bookings.
+
+Earnings & Payouts:
+
+    Track your daily, weekly, and monthly earnings via your dashboard.
+
+    You can request withdrawals to your linked bank account.
+
+    A payout history is available for your review.
+
+    SMART RECOMMENDATIONS
+
+The Parkly system provides intelligent recommendations based on:
+
+    Your current location
+
+    Booking history
+
+    Garage popularity
+
+    Availability
+
+    Price and rating metrics
+
+    CANCELLATION POLICY
+
+    Free cancellation is available within the designated grace period.
+
+    Late cancellations will incur a penalty fee (e.g., equivalent to the cost of 30 minutes).
+
+    Frequent abuse of the cancellation policy may result in a temporary account block (for example, a one-hour suspension).
+
+    HELP & SUPPORT
+
+If you need assistance, you can:
+
+    Ask the smart assistant questions such as:
+
+        "How do I book a garage?"
+
+        "Where is my QR Code?"
+
+        "How do I withdraw funds?"
+
+        "How do I add garage employees?"
+
+    Use the in-app live chat support.
+
+    Email support at support@parkly.com.
+
+    Call our support hotline at 123-456-7890.
+
+    Visit the FAQs section within the app.
+
+    FINAL TIPS FOR A GREAT EXPERIENCE
+
+    Ensure your documents are clear and up to date.
+
+    Keep your device's location services enabled for accurate garage detection.
+
+    Maintain sufficient funds in your wallet for quick bookings.
+
+    Provide feedback and reviews to help improve the service.
+
+    Garage Owners should regularly update their garage details and payment options.

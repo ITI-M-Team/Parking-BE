@@ -190,3 +190,11 @@ TWILIO_WHATSAPP_NUMBER = 'whatsapp:+14155238886'
 
 FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  
 DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  
+import os
+from dotenv import load_dotenv
+load_dotenv(os.path.join(BASE_DIR, ".env"))
+# Add this at the bottom (for local testing)
+CORS_ALLOW_ALL_ORIGINS = True
+
+# If using .env:
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")

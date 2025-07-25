@@ -11,6 +11,8 @@ urlpatterns = [
     path('api/bookings/', include('booking.urls')),
     path('api/owner/', include('owner_dashboard.urls')),
     path('api/reports/', include('reports.urls')),
+    path("api/rag/", include("ragchat.urls")),
+
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 # Debug: Print all URLs 
